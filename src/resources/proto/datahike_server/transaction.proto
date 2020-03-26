@@ -1,0 +1,39 @@
+package datahike_server.transaction;
+
+option java_outer_classname = "Request";
+
+enum ValueType {
+  BOOLEAN = 0;
+  LONG = 1;
+  DOUBLE = 2;
+  FLOAT = 3;
+  STRING = 4;
+  KEYWORD = 5;
+  INSTANT = 6;
+  UUID = 7;
+  BIG_DEC = 8;
+  BIG_INT = 9;
+}
+
+message Transactions {
+  message Entity {
+    optional int32 id = 1;
+    required string attribute = 2;
+    required string value = 3;
+    required ValueType type = 4;
+    optional int32 tx_id = 5;
+    optional bool added = 6;
+  }
+
+
+  repeated Entity tx_data = 1;
+  repeated Entity tx_meta = 2;
+}
+
+message Query {
+  required string query = 1;
+  repeated string args = 2;
+  repeated ValueType arg_types = 3;
+  optional int32 limit = 4;
+  optional int32 offset = 5;
+}

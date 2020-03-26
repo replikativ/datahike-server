@@ -5,7 +5,7 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [io.replikativ/datahike "0.2.2-SNAPSHOT"]
+                 [clojusc/protobuf "3.5.1-v1.1"]
                  [ring/ring-core "1.6.3"]
-                 [ring/ring-jetty-adapter "1.6.3"]
-                 [metosin/reitit "0.4.2"]]
+                 [ring/ring-jetty-adapter "1.6.3"]]
   :repl-options {:init-ns datahike-server.core})
