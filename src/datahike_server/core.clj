@@ -11,41 +11,7 @@
              :schema-on-read false})
 
 
-(def state (atom {}))
 
-
-
-(def routes
-  [["/swagger.json"
-    {:get {:no-doc  true
-           :swagger {:info {:title       "my-api"
-                            :description "with reitit-ring"}}
-           :handler (swagger/create-swagger-handler)}}]
-
-   ["/transact"
-    {:swagger {:tags ["transact"]}
-     :post {:summary "Transact new data."
-            :parameters {:body ::transactions}
-            :handler transact-handler}}]
-
-   ["/q"
-    {:swagger {:tags ["query"]}
-     :post {:summary "Query database"
-            :parameters {:body ::query-request}
-            :handler query-handler}}]
-   ])
-
-
-(defn init [{:keys [temporal-index schema-on-read] :as config}]
-  (when-not (d/database-exists? config)
-    (d/create-database config
-                       :temporal-index temporal-index
-                       :schema-on-read schema-on-read))
-  (swap! state assoc :conn (d/connect config)))
-
-(defn start-server []
-  (run-jetty app {:port  3000
-                  :join? false}))
 
 (comment
 
