@@ -34,6 +34,9 @@
 (s/def ::eid any?)
 (s/def ::pull-request (s/keys :req-un [::selector ::eid]))
 
+(s/def ::eids (s/coll-of ::eid))
+(s/def ::pull-many-request (s/keys :req-un [::selector ::eids]))
+
 (def routes
   [["/swagger.json"
     {:get {:no-doc  true
@@ -43,21 +46,27 @@
 
    ["/transact"
     {:swagger {:tags ["transact"]}
-     :post {:summary "Transact new data."
+     :post {:summary "Applies transaction to the underlying database value."
             :parameters {:body ::transactions}
             :handler h/transact}}]
 
    ["/q"
     {:swagger {:tags ["query"]}
-     :post {:summary "Query database"
+     :post {:summary "Executes a datalog query."
             :parameters {:body ::query-request}
             :handler h/q}}]
 
    ["/pull"
     {:swagger {:tags ["query"]}
-     :post {:summary "Fetches data from database using recursive declarative description. See [docs.datomic.com/on-prem/pull.html](https://docs.datomic.com/on-prem/pull.html)."
+     :post {:summary "Fetches data from database using recursive declarative description."
             :parameters {:body ::pull-request}
-            :handler h/pull}}]])
+            :handler h/pull}}]
+
+   ["/pull-many"
+    {:swagger {:tags ["query"]}
+     :post {:summary "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
+            :parameters {:body ::pull-many-request}
+            :handler h/pull-many}}]])
 
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
