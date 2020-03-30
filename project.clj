@@ -8,5 +8,7 @@
                  [clojusc/protobuf "3.5.1-v1.1"]
                  [ring/ring-core "1.6.3"]
                  [ring/ring-jetty-adapter "1.6.3"]
-                 [metosin/reitit "0.4.2"]]
+                 [metosin/reitit "0.4.2"]
+                 [mount "0.1.16"]
+                 [mount "0.1.16"]]
   :repl-options {:init-ns datahike-server.core})

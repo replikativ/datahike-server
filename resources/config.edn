@@ -1,0 +1,6 @@
+{:store {:backend :file
+         :path "/tmp/dh-2"}
+ :server {:port  3000
+          :join? false}
+ :schema-on-read true
+ :temporal-index false}
