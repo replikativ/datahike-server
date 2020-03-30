@@ -30,6 +30,10 @@
 (s/def ::query-request (s/keys :req-un [::query]
                                :opt-un [::args ::limit ::offset]))
 
+(s/def ::selector (s/coll-of any?))
+(s/def ::eid any?)
+(s/def ::pull-request (s/keys :req-un [::selector ::eid]))
+
 (def routes
   [["/swagger.json"
     {:get {:no-doc  true
@@ -47,7 +51,13 @@
     {:swagger {:tags ["query"]}
      :post {:summary "Query database"
             :parameters {:body ::query-request}
-            :handler h/q}}]])
+            :handler h/q}}]
+
+   ["/pull"
+    {:swagger {:tags ["query"]}
+     :post {:summary "Fetches data from database using recursive declarative description. See [docs.datomic.com/on-prem/pull.html](https://docs.datomic.com/on-prem/pull.html)."
+            :parameters {:body ::pull-request}
+            :handler h/pull}}]])
 
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs

@@ -2,20 +2,40 @@
   (:require [datahike-server.database :refer [conn]]
             [datahike.api :as d]))
 
-(defn transact [{{:keys [body]} :parameters}]
-  (let [result (d/transact conn {:tx-data (:tx-data body [])
-                                           :tx-meta (:tx-meta body [])})]
-    {:status 200
-     :body (-> result
-               (dissoc :db-after :db-before)
-               (update :tx-data #(map seq %))
-               (update :tx-meta #(map seq %)))}))
+(defn success [data]
+  {:status 200
+   :body data})
+
+(defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters}]
+  (let [result (d/transact conn {:tx-data tx-data
+                                 :tx-meta tx-meta})]
+    (-> result
+        (dissoc :db-after :db-before)
+        (update :tx-data #(map seq %))
+        (update :tx-meta #(map seq %))
+        success)))
 
 (defn q [{{:keys [body]} :parameters}]
-  {:status 200
-   :body (d/q {:query (:query body [])
-               :args (concat [@conn] (:args body []))
-               :limit (:limit body -1)
-               :offset (:offset body 0)})})
+  (success (d/q {:query (:query body [])
+                :args (concat [@conn] (:args body []))
+                :limit (:limit body -1)
+                :offset (:offset body 0)})))
 
+(defn pull [{{{:keys [selector eid]} :body} :parameters}]
+  (success (d/pull @conn selector eid)))
+
+(defn pull-many [{{{:keys [selector eids]} :body} :parameters}]
+  (success (d/pull-many @conn selector eids)))
+
+(defn datoms [{{{:keys [index components]} :body} :parameters}]
+  (success (apply d/datoms (into [@conn index] components))))
+
+(defn seek-datoms [{{{:keys [index components]} :body} :parameters}]
+  (success (apply d/seek-datoms (into [@conn index] components))))
+
+(defn tempid []
+  (success (d/tempid :db.part/db)))
+
+(defn entity [{{{:keys [eid]} :body} :parameters}]
+  (success (d/entity @conn eid)))
 
