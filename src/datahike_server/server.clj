@@ -37,11 +37,17 @@
 (s/def ::eids (s/coll-of ::eid))
 (s/def ::pull-many-request (s/keys :req-un [::selector ::eids]))
 
+(s/def ::index #{:eavt :aevt :avet})
+(s/def ::components (s/coll-of any?))
+(s/def ::datoms-request (s/keys :req-un [::index] :opt-un [::components]))
+
+(s/def ::entity-request (s/keys :req-un [::eid]))
+
 (def routes
   [["/swagger.json"
     {:get {:no-doc  true
-           :swagger {:info {:title       "my-api"
-                            :description "with reitit-ring"}}
+           :swagger {:info {:title       "Datahike API"
+                            :description "Transaction and search functions"}}
            :handler (swagger/create-swagger-handler)}}]
 
    ["/transact"
@@ -51,22 +57,44 @@
             :handler h/transact}}]
 
    ["/q"
-    {:swagger {:tags ["query"]}
+    {:swagger {:tags ["search"]}
      :post {:summary "Executes a datalog query."
             :parameters {:body ::query-request}
             :handler h/q}}]
 
    ["/pull"
-    {:swagger {:tags ["query"]}
+    {:swagger {:tags ["search"]}
      :post {:summary "Fetches data from database using recursive declarative description."
             :parameters {:body ::pull-request}
             :handler h/pull}}]
 
    ["/pull-many"
-    {:swagger {:tags ["query"]}
+    {:swagger {:tags ["search"]}
      :post {:summary "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
             :parameters {:body ::pull-many-request}
-            :handler h/pull-many}}]])
+            :handler h/pull-many}}]
+
+   ["/datoms"
+    {:swagger {:tags ["search"]}
+     :post {:summary "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
+            :parameters {:body ::datoms-request}
+            :handler h/datoms}}]
+   ["/seek datoms"
+    {:swagger {:tags ["search"]}
+     :post {:summary "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
+            :parameters {:body ::datoms-request}
+            :handler h/seek-datoms}}]
+
+   ["/tempid"
+    {:swagger {:tags ["utils"]}
+     :get {:summary "Allocates and returns an unique temporary id."
+           :handler h/tempid}}]
+
+   ["/entity"
+    {:swagger {:tags ["search"]}
+     :post {:summary "Retrieves an entity by its id from database."
+            :parameters {:body ::entity-request}
+            :handler h/entity}}]])
 
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs

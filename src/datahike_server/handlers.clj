@@ -1,6 +1,7 @@
 (ns datahike-server.handlers
   (:require [datahike-server.database :refer [conn]]
-            [datahike.api :as d]))
+            [datahike.api :as d]
+            [datahike.core :as c]))
 
 (defn success [data]
   {:status 200
@@ -11,8 +12,6 @@
                                  :tx-meta tx-meta})]
     (-> result
         (dissoc :db-after :db-before)
-        (update :tx-data #(map seq %))
-        (update :tx-meta #(map seq %))
         success)))
 
 (defn q [{{:keys [body]} :parameters}]
@@ -37,5 +36,8 @@
   (success (d/tempid :db.part/db)))
 
 (defn entity [{{{:keys [eid]} :body} :parameters}]
-  (success (d/entity @conn eid)))
+  (success (->> (d/entity @conn eid)
+                c/touch
+                (into {}))))
+
 

@@ -1,4 +1,5 @@
 (ns datahike-server.core
+  (:gen-class)
   (:require [mount.core :as mount]
             [datahike-server.config]
             [datahike-server.database]
