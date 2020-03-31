@@ -12,25 +12,28 @@
                                  :tx-meta tx-meta})]
     (-> result
         (dissoc :db-after :db-before)
+        (update :tx-data #(mapv (comp vec seq) %))
+        (update :tx-meta #(mapv (comp vec seq) %))
         success)))
 
 (defn q [{{:keys [body]} :parameters}]
-  (success (d/q {:query (:query body [])
-                :args (concat [@conn] (:args body []))
-                :limit (:limit body -1)
-                :offset (:offset body 0)})))
+  (success (into []
+                 (d/q {:query (:query body [])
+                      :args (concat [@conn] (:args body []))
+                      :limit (:limit body -1)
+                      :offset (:offset body 0)}))))
 
 (defn pull [{{{:keys [selector eid]} :body} :parameters}]
   (success (d/pull @conn selector eid)))
 
 (defn pull-many [{{{:keys [selector eids]} :body} :parameters}]
-  (success (d/pull-many @conn selector eids)))
+  (success (vec (d/pull-many @conn selector eids))))
 
 (defn datoms [{{{:keys [index components]} :body} :parameters}]
-  (success (apply d/datoms (into [@conn index] components))))
+  (success (mapv (comp vec seq) (apply d/datoms (into [@conn index] components)))))
 
 (defn seek-datoms [{{{:keys [index components]} :body} :parameters}]
-  (success (apply d/seek-datoms (into [@conn index] components))))
+  (success (mapv (comp vec seq) (apply d/seek-datoms (into [@conn index] components)))))
 
 (defn tempid []
   (success (d/tempid :db.part/db)))
