@@ -1,6 +1,8 @@
 /target
 /classes
 /checkouts
+/src/gen
+
 profiles.clj
 pom.xml
 pom.xml.asc
@@ -11,4 +13,17 @@ pom.xml.asc
 .hgignore
 .hg/
 .idea/
+
+node_modules/
+resources/public/js
+
+
+*.iml
+*.jar
+*.log
+.shadow-cljs
+.lein-*
+.nrepl-*
+.DS_Store
+
 datahike-server.iml

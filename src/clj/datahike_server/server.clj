@@ -9,6 +9,7 @@
             [reitit.ring.middleware.exception :as exception]
             [reitit.ring.middleware.multipart :as multipart]
             [reitit.ring.middleware.parameters :as parameters]
+            [ring.middleware.cors :refer [wrap-cors]]
             [muuntaja.core :as m]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
@@ -79,6 +80,7 @@
      :post {:summary "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
             :parameters {:body ::datoms-request}
             :handler h/datoms}}]
+
    ["/seek datoms"
     {:swagger {:tags ["search"]}
      :post {:summary "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
@@ -94,7 +96,12 @@
     {:swagger {:tags ["search"]}
      :post {:summary "Retrieves an entity by its id from database."
             :parameters {:body ::entity-request}
-            :handler h/entity}}]])
+            :handler h/entity}}]
+
+   ["/schema"
+    {:swagger {:tags ["utils"]}
+     :get {:summary "Fetches current schema"
+           :handler h/schema}}]])
 
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
@@ -114,14 +121,16 @@
                             multipart/multipart-middleware]}})
 
 (def app
-  (ring/ring-handler
-    (ring/router routes route-opts)
-    (ring/routes
-      (swagger-ui/create-swagger-ui-handler
-        {:path   "/"
-         :config {:validatorUrl     nil
-                  :operationsSorter "alpha"}})
-      (ring/create-default-handler))))
+  (-> (ring/ring-handler
+       (ring/router routes route-opts)
+       (ring/routes
+        (swagger-ui/create-swagger-ui-handler
+         {:path   "/"
+          :config {:validatorUrl     nil
+                   :operationsSorter "alpha"}})
+        (ring/create-default-handler)))
+      (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080"]
+                 :access-control-allow-methods [:get :put :post :delete])))
 
 (defn start-server []
   (run-jetty app (:server config)))

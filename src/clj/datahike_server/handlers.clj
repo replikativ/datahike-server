@@ -1,6 +1,7 @@
 (ns datahike-server.handlers
   (:require [datahike-server.database :refer [conn]]
             [datahike.api :as d]
+            [datahike.db :as dd]
             [datahike.core :as c]))
 
 (defn success [data]
@@ -35,12 +36,13 @@
 (defn seek-datoms [{{{:keys [index components]} :body} :parameters}]
   (success (mapv (comp vec seq) (apply d/seek-datoms (into [@conn index] components)))))
 
-(defn tempid []
-  (success (d/tempid :db.part/db)))
+(defn tempid [_]
+  (success {:tempid (d/tempid :db.part/db)}))
 
 (defn entity [{{{:keys [eid]} :body} :parameters}]
   (success (->> (d/entity @conn eid)
                 c/touch
                 (into {}))))
 
-
+(defn schema [_]
+  (success (dd/-schema @conn)))

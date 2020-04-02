@@ -9,7 +9,9 @@
                  [ring/ring-core "1.6.3"]
                  [ring/ring-jetty-adapter "1.6.3"]
                  [metosin/reitit "0.4.2"]
+                 [ring-cors "0.1.13"]
                  [mount "0.1.16"]]
+  :source-paths ["src/clj"]
   :main datahike-server.core
   :aot [datahike-server.core]
   :repl-options {:init-ns datahike-server.core})
