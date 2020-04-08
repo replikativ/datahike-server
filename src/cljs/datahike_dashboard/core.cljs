@@ -30,7 +30,7 @@
                            :db/cardinality :db.cardinality/one}})
 
 (def state (r/atom {:last-tx nil
-                    :schema nil
+                    :schema core-schema
                     :last-datoms []
                     :tx-input [{:db/id -1}]
                     :last-q nil}))
