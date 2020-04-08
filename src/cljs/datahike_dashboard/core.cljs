@@ -2,7 +2,17 @@
   (:require [ajax.core :refer [GET PUT DELETE POST]]
             [cljs.reader :refer [read-string]]
             [reagent.core :as r]
-            ["react-bootstrap" :refer [Button Container Form Table Dropdown Row Col DropdownButton]]))
+            ["react-bootstrap" :refer [Button
+                                       Container
+                                       Form
+                                       Table
+                                       Dropdown
+                                       Row
+                                       Col
+                                       DropdownButton
+                                       Nav
+                                       Navbar
+                                       Tab]]))
 
 (def core-schema {:db/ident {:db/valueType   :db.type/keyword
                              :db/unique      :db.unique/identity
@@ -106,6 +116,7 @@
 
 
 (defn datoms-page []
+  (all-datoms :eavt)
   [:> Container
    [:h1 "Datoms"]
    [:> Table
@@ -114,8 +125,7 @@
       [:th "Entity"]
       [:th "Attribute"]
       [:th "Value"]
-      [:th "Transaction"]]
-     ]
+      [:th "Transaction"]]]
     [:tbody
      (doall
       (for [[e a v t _] (:last-datoms @state)]
@@ -126,9 +136,10 @@
          [:td v]
          [:td t]]))]]])
 
-(defn simple-component []
+(defn transactions-page []
   (let [local-state (r/atom {:selected-type nil})]
     (fn []
+      (fetch-schema)
       (let [table-headers (->> (:schema @state)
                                keys
                                (filter keyword?)
@@ -157,7 +168,7 @@
                                                 (swap! local-state assoc-in [:selected-type] :core)
                                                 (println @local-state))
                                    :active (= (:selected-type @local-state) :core)} "Core"]]]]
-         [:> Table {:responsive :sm
+         [:> Table {:responsive true
                     :size :sm}
           [:thead
            [:tr
@@ -207,16 +218,37 @@
          [:p "Transaction result : " ]
          [:code (str (:last-tx @state))]]))))
 
+(defn sidebar []
+  (let [local (r/atom {})]
+    (fn []
+      [:> Nav {:className "justify-content-center flex-column"
+               :variant :pills}
+       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :transactions} "Transactions"]]
+       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :datoms} "Datoms"]]])))
+
+(defn wrapper-component []
+  [:div.wrapper
+   [:> Navbar {:expand :lg :bg :dark :variant :dark}
+    [:> (.-Brand Navbar) "Datahike Dashboard"]
+    [:> (.-Toggle Navbar) {:aria-controls :basic-navbar-nav}]]
+   [:> (.-Container Tab) {:defaultActiveKey :transactions}
+    [:> Row
+     [:> Col {:sm 2} [sidebar]]
+     [:> Col {:sm 10}
+      [:> (.-Content Tab)
+       [:> (.-Pane Tab) {:eventKey :transactions} [transactions-page]]
+       [:> (.-Pane Tab) {:eventKey :datoms} [datoms-page]]]]]]])
+
 (defn init! []
   (print "[main]: initializing...")
   (r/render
-   [simple-component]
+   [wrapper-component]
    (js/document.getElementById "root")))
 
 (defn reload! []
   (println "[main]: reloading...")
   (r/render
-   [simple-component]
+   [wrapper-component]
    (js/document.getElementById "root")))
 
 (comment
