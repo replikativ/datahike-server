@@ -3,16 +3,18 @@
             [cljs.reader :refer [read-string]]
             [reagent.core :as r]
             ["react-bootstrap" :refer [Button
-                                       Container
-                                       Form
-                                       Table
-                                       Dropdown
-                                       Row
                                        Col
+                                       Container
+                                       Dropdown
                                        DropdownButton
+                                       Form
+                                       ListGroup
                                        Nav
                                        Navbar
-                                       Tab]]))
+                                       Row
+                                       Tab
+                                       Table
+                                       Toast]]))
 
 (def core-schema {:db/ident {:db/valueType   :db.type/keyword
                              :db/unique      :db.unique/identity
@@ -39,10 +41,10 @@
                            :db/index true
                            :db/cardinality :db.cardinality/one}})
 
-(def state (r/atom {:last-tx nil
-                    :schema core-schema
+(def state (r/atom {:schema core-schema
                     :last-datoms []
                     :tx-input [{:db/id -1}]
+                    :notifications []
                     :last-q nil}))
 
 (def core-schema-keys #{:db/ident :db/valueType :db/cardinality :db/doc :db/unique :db/index})
@@ -102,8 +104,8 @@
   (let [typed-data (mapv schema-reducer data)]
     (POST "http://localhost:3000/transact"
           {:handler (fn [r]
-                      (swap! state assoc-in [:last-tx] r)
-                      (swap! state assoc-in [:tx-input] [{:db/id -1}]))
+                      (swap! state assoc-in [:tx-input] [{:db/id -1}])
+                      (swap! state update-in [:notifications] conj {:header "Transaction result" :body [:code (str r)]}))
            :params {:tx-data typed-data}
            :headers {"Content-Type" "application/transit+json"
                      "Accept" "application/transit+json"}})))
@@ -114,6 +116,20 @@
         :headers {"Content-Type" "application/transit+json"
                   "Accept" "application/transit+json"}}))
 
+
+(defn toast [header body]
+  (let [show (r/atom true)]
+    (fn []
+      [:> Toast {:show @show
+                 :autohide true
+                 :delay 3000
+                 :style {:position :absolute
+                         :z-index 99999
+                         :bottom 0
+                         :left 10}
+                 :onClose (fn [] (reset! show false))}
+       [:> (.-Header Toast) header]
+       [:> (.-Body Toast) body]])))
 
 (defn datoms-page []
   (all-datoms :eavt)
@@ -136,38 +152,23 @@
          [:td v]
          [:td t]]))]]])
 
-(defn transactions-page []
+(defn transactions-page [tx-type]
   (let [local-state (r/atom {:selected-type nil})]
     (fn []
       (fetch-schema)
       (let [table-headers (->> (:schema @state)
                                keys
                                (filter keyword?)
-                               ((case (:selected-type @local-state)
-                                  :user remove
-                                  :core filter
+                               ((case tx-type
+                                  :data remove
+                                  :schema filter
                                   remove) (into #{} (keys core-schema)))
                                (#(conj % :db/id))
                                (into #{})
                                vec)
             user-schema? (-> table-headers count pos?)]
-        [:> Container
-         [:> Row
-          [:> Col {:sm 8} [:h1 "Transactions"]]
-          [:> Col {:sm 4
-                   :className "d-flex justify-content-end align-items-center"}
-           [:> DropdownButton {:id "tx-dropdown"
-                               :title "Select Transaction type"
-                               :variant "secondary"}
-            [:> (.-Item Dropdown) {:on-click (fn [e]
-                                               (swap! local-state assoc-in [:selected-type] :user)
-                                               (fetch-schema))
-                                   :active (= (:selected-type @local-state) :user)} "User"]
-            [:> (.-Item Dropdown) {:on-click #(do
-                                                (println "CLICK0R!")
-                                                (swap! local-state assoc-in [:selected-type] :core)
-                                                (println @local-state))
-                                   :active (= (:selected-type @local-state) :core)} "Core"]]]]
+        [:> Container {:fluid true}
+         [:h1 "Transactions"]
          [:> Table {:responsive true
                     :size :sm}
           [:thead
@@ -203,41 +204,45 @@
                                 :on-click #(swap! state update-in [:tx-input] (fn [old]
                                                                                 (vec (concat (subvec old 0 i)
                                                                                              (subvec old (inc i))))))}
-                     "Delete"]]]))
-           [:tr
-            [:td [:> Button {:variant "secondary"
-                             :color "secondary"
-                             :on-click (fn [_]
-                                         (swap! state update-in [:tx-input] #(conj % {:db/id (- (inc (count %)))})))}
-                  "Add another entity"]]
-            ]]]
+                     "Delete"]]]))]]
+         [:> Button {:variant "secondary"
+                     :color "secondary"
+                     :on-click (fn [_]
+                                 (swap! state update-in [:tx-input] #(conj % {:db/id (- (inc (count %)))})))}
+          "Add another entity"]
          [:> Button {:variant "primary"
                      :color "primary"
                      :on-click #(transact (:tx-input @state))} "Transact"]
-         [:br]
-         [:p "Transaction result : " ]
-         [:code (str (:last-tx @state))]]))))
+         ]))))
 
 (defn sidebar []
   (let [local (r/atom {})]
     (fn []
-      [:> Nav {:className "justify-content-center flex-column"
-               :variant :pills}
-       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :transactions} "Transactions"]]
+      [:> Nav {:className "justify-content-center flex-column"}
+       [:> (.-Item Nav) [:h5 "Transactions"]]
+       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :schema-transactions} "Schema"]]
+       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :data-transactions} "Data"]]
+       [:> (.-Item Nav) [:h5 "Queries"]]
        [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :datoms} "Datoms"]]])))
 
 (defn wrapper-component []
   [:div.wrapper
-   [:> Navbar {:expand :lg :bg :dark :variant :dark}
+   (for [{:keys [header body]} (:notifications @state)
+         idx (range (count (:notifications @state)))]
+     ^{:key (str "toast-" idx)}
+     [toast header body])
+   [:> Navbar {:bg :dark :variant :dark}
     [:> (.-Brand Navbar) "Datahike Dashboard"]
     [:> (.-Toggle Navbar) {:aria-controls :basic-navbar-nav}]]
-   [:> (.-Container Tab) {:defaultActiveKey :transactions}
+   [:> (.-Container Tab) {:defaultActiveKey :data-transactions}
     [:> Row
-     [:> Col {:sm 2} [sidebar]]
-     [:> Col {:sm 10}
+     [:> Col {:md 1} [sidebar]]
+     [:> Col {:md 11}
       [:> (.-Content Tab)
-       [:> (.-Pane Tab) {:eventKey :transactions} [transactions-page]]
-       [:> (.-Pane Tab) {:eventKey :datoms} [datoms-page]]]]]]])
+       [:> (.-Pane Tab) {:eventKey :schema-transactions} [transactions-page :schema]]
+       [:> (.-Pane Tab) {:eventKey :data-transactions} [transactions-page :data]]
+       [:> (.-Pane Tab) {:eventKey :datoms} [datoms-page]]]]]]
+   ])
 
 (defn init! []
   (print "[main]: initializing...")
@@ -254,7 +259,7 @@
 (comment
 
   (all-datoms :eavt)
-  
+
   (POST "http://localhost:3000/q"
         {:handler (fn [r] (swap! state assoc-in [:last-q] r))
          :params {:query '[:find ?e ?b :where [?e :foo ?b]]}
@@ -279,9 +284,7 @@
 
   (fetch-schema)
 
-  (-> @state :tx-input first schema-reducer)
-
-  (-> @state :schema :db/ident)
+  @state
 
   (:tx-input @state)
 

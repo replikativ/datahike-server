@@ -8,6 +8,14 @@
   {:status 200
    :body data})
 
+(defn connect [])
+
+(defn create-database [config]
+  ()
+  (d/create-database config))
+
+(defn delete-database [config])
+
 (defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters}]
   (let [result (d/transact conn {:tx-data tx-data
                                  :tx-meta tx-meta})]
