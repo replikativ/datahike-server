@@ -126,7 +126,6 @@
    [:> (.-Body Toast) body]])
 
 (defn datoms-page []
-  (all-datoms :eavt)
   [:> Container
    [:h1 "Datoms"]
    [:> Table
@@ -144,12 +143,12 @@
          [:td e]
          [:td a]
          [:td v]
-         [:td t]]))]]])
+         [:td t]]))]]]
+  )
 
 (defn transactions-page [tx-type]
   (let [local-state (r/atom {:selected-type nil})]
     (fn []
-      (fetch-schema)
       (let [table-headers (->> (:schema @state)
                                keys
                                (filter keyword?)
@@ -215,17 +214,16 @@
       [:> Nav {:className "justify-content-center flex-column"}
        [:> (.-Item Nav) [:h5 "Transactions"]]
        [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :schema-transactions} "Schema"]]
-       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :data-transactions} "Data"]]
+       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :data-transactions :on-click #(fetch-schema)} "Data"]]
        [:> (.-Item Nav) [:h5 "Queries"]]
-       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :datoms} "Datoms"]]])))
+       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :datoms :on-click #(all-datoms :eavt)} "Datoms"]]])))
 
 (defn wrapper-component []
   [:div.wrapper
    [:div { :style {:position :absolute
                    :z-index 99999
                    :bottom 0
-                   :left 10}
-          }
+                   :left 10}}
     (for [{:keys [header body] :as item} (:notifications @state)]
       ^{:key (str "toast-" (str body)) }
       [toast header body])]
