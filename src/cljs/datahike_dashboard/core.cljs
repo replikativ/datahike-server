@@ -118,18 +118,12 @@
 
 
 (defn toast [header body]
-  (let [show (r/atom true)]
-    (fn []
-      [:> Toast {:show @show
-                 :autohide true
-                 :delay 3000
-                 :style {:position :absolute
-                         :z-index 99999
-                         :bottom 0
-                         :left 10}
-                 :onClose (fn [] (reset! show false))}
-       [:> (.-Header Toast) header]
-       [:> (.-Body Toast) body]])))
+  [:> Toast {:show true
+             :autohide true
+             :delay 5000
+             :onClose (fn [] (swap! state update :notifications (fn [old] (remove #(= {:header header :body body}) old))))}
+   [:> (.-Header Toast) header]
+   [:> (.-Body Toast) body]])
 
 (defn datoms-page []
   (all-datoms :eavt)
@@ -227,10 +221,14 @@
 
 (defn wrapper-component []
   [:div.wrapper
-   (for [{:keys [header body]} (:notifications @state)
-         idx (range (count (:notifications @state)))]
-     ^{:key (str "toast-" idx)}
-     [toast header body])
+   [:div { :style {:position :absolute
+                   :z-index 99999
+                   :bottom 0
+                   :left 10}
+          }
+    (for [{:keys [header body] :as item} (:notifications @state)]
+      ^{:key (str "toast-" (str body)) }
+      [toast header body])]
    [:> Navbar {:bg :dark :variant :dark}
     [:> (.-Brand Navbar) "Datahike Dashboard"]
     [:> (.-Toggle Navbar) {:aria-controls :basic-navbar-nav}]]
@@ -288,6 +286,8 @@
 
   (:tx-input @state)
 
+
+  (:notifications @state)
 
 )
 
