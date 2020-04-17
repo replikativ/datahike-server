@@ -37,6 +37,9 @@
                   :db/isComponent {:db/valueType :db.type/boolean
                                    :db/unique :db.unique/identity
                                    :db/cardinality :db.cardinality/one}
+                  :db/noHistory {:db/valueType :db.type/boolean
+                                 :db/unique :db.unique/identity
+                                 :db/cardinality :db.cardinality/one}
                   :db/doc {:db/valueType :db.type/string
                            :db/index true
                            :db/cardinality :db.cardinality/one}})
@@ -46,8 +49,6 @@
                     :tx-input [{:db/id -1}]
                     :notifications []
                     :last-q nil}))
-
-(def core-schema-keys #{:db/ident :db/valueType :db/cardinality :db/doc :db/unique :db/index})
 
 (defn schema->input-type [schema]
   (case schema
@@ -83,6 +84,7 @@
     :db.type/cardinality #(keyword "db.cardinality" %)
     :db.type/index pos?
     :db.type/isComponent pos?
+    :db.type/boolean pos?
     :db.type/unique #(keyword "db.unique" %)
     identity))
 
@@ -191,7 +193,10 @@
                        [:input {:type input-type
                                 :value (-> @state :tx-input (get i) th str)
                                 :disabled (= :db/id th)
-                                :on-change #(swap! state assoc-in [:tx-input i th] (.. % -target -value))}]))]))
+                                :on-change #(swap! state assoc-in [:tx-input i th]
+                                                   (case input-type
+                                                     "checkbox" (.. % -target -checked)
+                                                     (.. % -target -value)))}]))]))
                [:td [:> Button {:variant "danger"
                                 :color "danger"
                                 :on-click #(swap! state update-in [:tx-input] (fn [old]
@@ -208,15 +213,57 @@
                      :on-click #(transact (:tx-input @state))} "Transact"]
          ]))))
 
+(defn schema-page []
+  (let [schema (:schema @state)
+        table-headers [:db/ident :db/valueType :db/cardinality :db/doc :db/index :db/unique :db/noHistory :db/isComponent]
+        schema-attrs (->> schema
+                          keys
+                          (filter keyword?)
+                          (remove (into #{} (keys core-schema)))
+                          vec)]
+    [:> Container
+     [:h1 "Schema"]
+     [:> Table
+      [:thead
+       [:tr
+        (for [th table-headers] ^{:key (str "schema-h-" th)} [:th th])]]
+      [:tbody
+       (for [attr schema-attrs]
+         ^{:key (str "schema-a" attr)}
+         [:tr
+          (doall
+           (for [th table-headers]
+             ^{:key (str "schema-a-" attr "-" th)}
+             [:td
+              (if (= (get-in core-schema [attr]) :db.type/boolean)
+                (when-let [v (get-in schema [attr th])]
+                  [:input {:type :checkbox
+                           :value v
+                           :disabled true}])
+                (str (get-in schema [attr th] "")))]))])]]]))
+
+(defn nav-item
+  [child]
+  [:> (.-Item Nav) child])
+
+(defn nav-link
+  ([event-key title]
+   [nav-link event-key title nil])
+  ([event-key title callback]
+   [nav-item [:> (.-Link Nav) {:eventKey event-key :on-click callback} title]]))
+
+(defn nav-header [title]
+  [nav-item [:strong title]])
+
 (defn sidebar []
-  (let [local (r/atom {})]
-    (fn []
-      [:> Nav {:className "justify-content-center flex-column"}
-       [:> (.-Item Nav) [:h5 "Transactions"]]
-       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :schema-transactions} "Schema"]]
-       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :data-transactions :on-click #(fetch-schema)} "Data"]]
-       [:> (.-Item Nav) [:h5 "Queries"]]
-       [:> (.-Item Nav) [:> (.-Link Nav) {:eventKey :datoms :on-click #(all-datoms :eavt)} "Datoms"]]])))
+  [:> Nav {:className "justify-content-center flex-column"}
+   [nav-header "Transactions"]
+   [nav-link :schema-transactions "Schema"]
+   [nav-link :data-transactions "Data" fetch-schema]
+   [nav-header "Queries"]
+   [nav-link :datoms "Datoms" #(all-datoms :eavt)]
+   [nav-link :q "Q" #(js/alert "Q!")]
+   [nav-link :schema "Schema" fetch-schema]])
 
 (defn wrapper-component []
   [:div.wrapper
@@ -237,7 +284,8 @@
       [:> (.-Content Tab)
        [:> (.-Pane Tab) {:eventKey :schema-transactions} [transactions-page :schema]]
        [:> (.-Pane Tab) {:eventKey :data-transactions} [transactions-page :data]]
-       [:> (.-Pane Tab) {:eventKey :datoms} [datoms-page]]]]]]
+       [:> (.-Pane Tab) {:eventKey :datoms} [datoms-page]]
+       [:> (.-Pane Tab) {:eventKey :schema} [schema-page]]]]]]
    ])
 
 (defn init! []
@@ -258,21 +306,9 @@
 
   (POST "http://localhost:3000/q"
         {:handler (fn [r] (swap! state assoc-in [:last-q] r))
-         :params {:query '[:find ?e ?b :where [?e :foo ?b]]}
+         :params {:query '[:find ?e ?b :where [?e :name ?b]]}
          :headers {"Content-Type" "application/transit+json"
                    "Accept" "application/transit+json"}})
-
-  (POST "http://localhost:3000/transact"
-       {:handler (fn [r] (swap! state assoc-in [:last-tx] r))
-        :params {:tx-data [{:db/ident :bar
-                            :db/valueType :db.type/long
-                            :db/cardinality :db.cardinality/many}
-                           {:db/ident :foo
-                            :db/valueType :db.type/string
-                            :db/cardinality :db.cardinality/one}
-                           ]}
-        :headers {"Content-Type" "application/transit+json"
-                  "Accept" "application/transit+json"}})
 
   (init!)
 
@@ -280,12 +316,28 @@
 
   (fetch-schema)
 
-  @state
+  (-> @state :tx-input)
 
-  (:tx-input @state)
+  (-> (:schema @state) :booar)
+
+  (let [table-headers (->> (:schema @state)
+                           keys
+                           (filter keyword?)
+                           (filter (into #{} (keys core-schema)))
+                           (#(conj % :db/id))
+                           (into #{})
+                           vec)
+        schema-attrs ]
+    )
+
+  (->> (:schema @state)
+       keys
+       (filter keyword?)
+       (remove (into #{} (keys core-schema)))
+       (into #{})
+       vec)
 
 
-  (:notifications @state)
 
 )
 

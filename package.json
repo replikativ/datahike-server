@@ -8,8 +8,11 @@
   "dependencies": {
     "bootstrap": "^4.4.1",
     "create-react-class": "^15.6.3",
+    "jquery": "^3.5.0",
+    "popper.js": "^1.16.1",
     "react": "^16.13.1",
     "react-bootstrap": "^1.0.0",
+    "react-codemirror": "^1.0.0",
     "react-dom": "^16.13.1"
   }
 }
