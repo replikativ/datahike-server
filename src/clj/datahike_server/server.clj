@@ -15,6 +15,7 @@
             [clojure.spec.alpha :as s]
             [datahike-server.handlers :as h]
             [datahike-server.config :refer [config]]
+            [datahike-server.database :refer [database]]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]])
   (:import (java.util UUID)))
@@ -44,12 +45,51 @@
 
 (s/def ::entity-request (s/keys :req-un [::eid]))
 
+(s/def ::backend #{:mem :file :pg :level})
+(s/def ::username string?)
+(s/def ::password string?)
+(s/def ::path string?)
+(s/def ::host string?)
+(s/def ::port number?)
+(s/def ::store (s/keys :req-un [::backend ::path]
+                       :opt-un [::username ::password ::host ::port]))
+(s/def ::schema-on-read boolean?)
+(s/def ::temporal-index boolean?)
+(s/def ::new-database (s/keys :req-un [::store]
+                              :opt-un [::schema-on-read ::temporal-index]))
+
+(s/def ::db-id string?)
+
 (def routes
   [["/swagger.json"
     {:get {:no-doc  true
            :swagger {:info {:title       "Datahike API"
                             :description "Transaction and search functions"}}
            :handler (swagger/create-swagger-handler)}}]
+
+   ["/databases"
+    {:swagger {:tags ["database"]}
+     :get {:summary "List available databases."
+           :handler h/list-databases}
+
+     :post {:summary "Creates a new database."
+            :parameters {:body ::new-database}
+            :handler h/create-database}}]
+
+   ["/echo"
+    {:get {:handler (fn [request]
+                      (clojure.pprint/pprint request)
+                      {:status 200})}}]
+
+   ["/databases/:id"
+    {:delete {:summary "Deletes database."
+              :parameters {:params ::db-id}
+              :handler h/delete-database}}]
+
+   ["/databases/:id/connections"
+    {:post {:summary "Connect to database."
+            :parameters {:params ::db-id}
+            :handler h/connect}}]
 
    ["/transact"
     {:swagger {:tags ["transact"]}
@@ -101,7 +141,18 @@
    ["/schema"
     {:swagger {:tags ["utils"]}
      :get {:summary "Fetches current schema"
-           :handler h/schema}}]])
+           :handler h/schema}}]
+
+
+   ])
+
+(defn wrap-db-connection [handler]
+  (fn [request]
+    (if-let [db-id (get-in request [:headers "Database-ID"])]
+      (if-let [conn (get-in @database [:connections (java.util.UUID/fromString db-id)])]
+        (handler (assoc request :conn conn))
+        (handler request))
+      (handler request))))
 
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
@@ -118,7 +169,8 @@
                             muuntaja/format-request-middleware
                             coercion/coerce-response-middleware
                             coercion/coerce-request-middleware
-                            multipart/multipart-middleware]}})
+                            multipart/multipart-middleware
+                            ]}})
 
 (def app
   (-> (ring/ring-handler
@@ -138,3 +190,4 @@
 (defstate server
   :start (start-server)
   :stop (.stop server))
+

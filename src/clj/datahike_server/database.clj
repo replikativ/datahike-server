@@ -1,20 +1,10 @@
 (ns datahike-server.database
-  (:require [mount.core :refer [defstate]]
-            [datahike-server.config :refer [config]]
-            [datahike.api :as d])
-  (:import [java.util UUID]))
+  (:require [konserve.filestore :refer [new-fs-store]]
+            [konserve.core :as k]
+            [clojure.core.async :as async :refer [<!!]]
+            [mount.core :refer [defstate]]))
 
-(defstate conn
-  :start
-  (let [store-config (:store config {:backend :mem :path (str"/dh/" (UUID/randomUUID))})]
-    (when-not (d/database-exists? store-config)
-      (println "Creating database..." store-config)
-      (d/create-database store-config
-                         :temporal-index (:temporal-index config false)
-                         :schema-on-read (:schema-on-read config true))
-      (println "Database created."))
-    (println "Connecting to database...")
-    (d/connect store-config))
-  :stop (d/release conn))
-
+(defstate database
+  :start (atom {:connections {}
+                :store (<!! (new-fs-store "./.store"))}))
 
