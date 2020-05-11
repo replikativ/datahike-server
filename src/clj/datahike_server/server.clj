@@ -51,14 +51,17 @@
 (s/def ::path string?)
 (s/def ::host string?)
 (s/def ::port number?)
-(s/def ::store (s/keys :req-un [::backend ::path]
-                       :opt-un [::username ::password ::host ::port]))
+(s/def ::name string?)
+(s/def ::store (s/keys :req-un [::backend ]
+                       :opt-un [::username ::path ::password ::host ::port]))
 (s/def ::schema-on-read boolean?)
 (s/def ::temporal-index boolean?)
-(s/def ::new-database (s/keys :req-un [::store]
+(s/def ::new-database (s/keys :req-un [::store ::name]
                               :opt-un [::schema-on-read ::temporal-index]))
 
 (s/def ::db-id string?)
+
+(s/def ::db-header (s/keys :req-un [::db-id]))
 
 (def routes
   [["/swagger.json"
@@ -81,78 +84,83 @@
                       (clojure.pprint/pprint request)
                       {:status 200})}}]
 
+   ["/echo/:id"
+    {:get {:handler (fn [request]
+                      (clojure.pprint/pprint request)
+                      {:status 200})}}]
+
    ["/databases/:id"
     {:delete {:summary "Deletes database."
-              :parameters {:params ::db-id}
+              :parameters {:path {:id ::db-id}}
               :handler h/delete-database}}]
 
    ["/databases/:id/connections"
     {:post {:summary "Connect to database."
-            :parameters {:params ::db-id}
+            :parameters {:path {:id ::db-id}}
             :handler h/connect}}]
 
    ["/transact"
     {:swagger {:tags ["transact"]}
      :post {:summary "Applies transaction to the underlying database value."
-            :parameters {:body ::transactions}
+            :parameters {:body ::transactions :header ::db-header}
             :handler h/transact}}]
 
    ["/q"
     {:swagger {:tags ["search"]}
      :post {:summary "Executes a datalog query."
-            :parameters {:body ::query-request}
+            :parameters {:body ::query-request :header ::db-header}
             :handler h/q}}]
 
    ["/pull"
     {:swagger {:tags ["search"]}
      :post {:summary "Fetches data from database using recursive declarative description."
-            :parameters {:body ::pull-request}
+            :parameters {:body ::pull-request :header ::db-header}
             :handler h/pull}}]
 
    ["/pull-many"
     {:swagger {:tags ["search"]}
      :post {:summary "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
-            :parameters {:body ::pull-many-request}
+            :parameters {:body ::pull-many-request :header ::db-header}
             :handler h/pull-many}}]
 
    ["/datoms"
     {:swagger {:tags ["search"]}
      :post {:summary "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
-            :parameters {:body ::datoms-request}
+            :parameters {:body ::datoms-request :header ::db-header}
             :handler h/datoms}}]
 
    ["/seek datoms"
     {:swagger {:tags ["search"]}
      :post {:summary "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
-            :parameters {:body ::datoms-request}
+            :parameters {:body ::datoms-request :header ::db-header}
             :handler h/seek-datoms}}]
 
    ["/tempid"
     {:swagger {:tags ["utils"]}
      :get {:summary "Allocates and returns an unique temporary id."
+           :parameters {:header ::db-header}
            :handler h/tempid}}]
 
    ["/entity"
     {:swagger {:tags ["search"]}
      :post {:summary "Retrieves an entity by its id from database."
-            :parameters {:body ::entity-request}
+            :parameters {:body ::entity-request :header ::db-header}
             :handler h/entity}}]
 
    ["/schema"
     {:swagger {:tags ["utils"]}
      :get {:summary "Fetches current schema"
-           :handler h/schema}}]
-
-
-   ])
+           :parameters {:header ::db-header}
+           :handler h/schema}}]])
 
 (defn wrap-db-connection [handler]
   (fn [request]
-    (if-let [db-id (get-in request [:headers "Database-ID"])]
-      (if-let [conn (get-in @database [:connections (java.util.UUID/fromString db-id)])]
+    (if-let [db-id (get-in request [:headers "db-id"])]
+      (if-let [conn (get-in @database [:connections db-id])]
         (handler (assoc request :conn conn))
         (handler request))
       (handler request))))
+
 
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
@@ -181,6 +189,7 @@
           :config {:validatorUrl     nil
                    :operationsSorter "alpha"}})
         (ring/create-default-handler)))
+      wrap-db-connection
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080"]
                  :access-control-allow-methods [:get :put :post :delete])))
 

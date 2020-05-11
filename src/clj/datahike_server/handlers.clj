@@ -13,15 +13,15 @@
   ([data] {:status 200 :body data})
   ([] {:status 200}))
 
-(defn connect [{{{:keys [id]} :path} :parameters}]
+(defn connect [{{:keys [id]} :path-params}]
   (let [config (<!! (k/get-in (:store @database) [:configurations id]))]
     (dc/reload-config config)
     (swap! database assoc-in [:connections id] (d/connect))
     (success)))
 
-(defn create-database [{{{:keys [config name]} :body} :parameters}]
-  (let [id (UUID/randomUUID)]
-    (<!! (k/assoc-in (:store @database) [:configurations id] (assoc config :name name)))
+(defn create-database [{{config :body} :parameters}]
+  (let [id (str (UUID/randomUUID))]
+    (<!! (k/assoc-in (:store @database) [:configurations id] config))
     (dc/reload-config config)
     (d/create-database)
     (success {:id id})))

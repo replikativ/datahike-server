@@ -1,20 +1,9 @@
 (ns datahike-dashboard.core
   (:require [ajax.core :refer [GET PUT DELETE POST]]
             [cljs.reader :refer [read-string]]
-            [reagent.core :as r]
-            ["react-bootstrap" :refer [Button
-                                       Col
-                                       Container
-                                       Dropdown
-                                       DropdownButton
-                                       Form
-                                       ListGroup
-                                       Nav
-                                       Navbar
-                                       Row
-                                       Tab
-                                       Table
-                                       Toast]]))
+            ["@material-ui/core" :refer [Container Typography AppBar Toolbar IconButton]]
+            ["@material-ui/icons/Menu" :as MenuIcon]
+            [reagent.core :as r]))
 
 (def core-schema {:db/ident {:db/valueType   :db.type/keyword
                              :db/unique      :db.unique/identity
@@ -119,7 +108,7 @@
                   "Accept" "application/transit+json"}}))
 
 
-(defn toast [header body]
+#_(defn toast [header body]
   [:> Toast {:show true
              :autohide true
              :delay 5000
@@ -127,7 +116,7 @@
    [:> (.-Header Toast) header]
    [:> (.-Body Toast) body]])
 
-(defn datoms-page []
+#_(defn datoms-page []
   [:> Container
    [:h1 "Datoms"]
    [:> Table
@@ -148,7 +137,7 @@
          [:td t]]))]]]
   )
 
-(defn transactions-page [tx-type]
+#_(defn transactions-page [tx-type]
   (let [local-state (r/atom {:selected-type nil})]
     (fn []
       (let [table-headers (->> (:schema @state)
@@ -213,7 +202,7 @@
                      :on-click #(transact (:tx-input @state))} "Transact"]
          ]))))
 
-(defn schema-page []
+#_(defn schema-page []
   (let [schema (:schema @state)
         table-headers [:db/ident :db/valueType :db/cardinality :db/doc :db/index :db/unique :db/noHistory :db/isComponent]
         schema-attrs (->> schema
@@ -242,20 +231,20 @@
                            :disabled true}])
                 (str (get-in schema [attr th] "")))]))])]]]))
 
-(defn nav-item
+#_(defn nav-item
   [child]
   [:> (.-Item Nav) child])
 
-(defn nav-link
+#_(defn nav-link
   ([event-key title]
    [nav-link event-key title nil])
   ([event-key title callback]
    [nav-item [:> (.-Link Nav) {:eventKey event-key :on-click callback} title]]))
 
-(defn nav-header [title]
+#_(defn nav-header [title]
   [nav-item [:strong title]])
 
-(defn sidebar []
+#_(defn sidebar []
   [:> Nav {:className "justify-content-center flex-column"}
    [nav-header "Transactions"]
    [nav-link :schema-transactions "Schema"]
@@ -265,7 +254,7 @@
    [nav-link :q "Q" #(js/alert "Q!")]
    [nav-link :schema "Schema" fetch-schema]])
 
-(defn wrapper-component []
+#_(defn wrapper-component []
   [:div.wrapper
    [:div { :style {:position :absolute
                    :z-index 99999
@@ -285,19 +274,28 @@
        [:> (.-Pane Tab) {:eventKey :schema-transactions} [transactions-page :schema]]
        [:> (.-Pane Tab) {:eventKey :data-transactions} [transactions-page :data]]
        [:> (.-Pane Tab) {:eventKey :datoms} [datoms-page]]
-       [:> (.-Pane Tab) {:eventKey :schema} [schema-page]]]]]]
-   ])
+       [:> (.-Pane Tab) {:eventKey :schema} [schema-page]]]]]]])
+
+(defn menu-icon [])
+
+(defn wrapper []
+  [:div
+   [:> AppBar {:position :static}
+    [:> Toolbar
+     [:> IconButton {:edge :start :color :inherit :aria-label "menu"}]
+     [:> Typography {:variant :h6} "Datahike"]]]
+   [:> Container {:maxWidth :sm}]])
 
 (defn init! []
   (print "[main]: initializing...")
   (r/render
-   [wrapper-component]
+   [wrapper]
    (js/document.getElementById "root")))
 
 (defn reload! []
   (println "[main]: reloading...")
   (r/render
-   [wrapper-component]
+   [wrapper]
    (js/document.getElementById "root")))
 
 (comment
@@ -338,6 +336,8 @@
        vec)
 
 
+
+  
 
 )
 
