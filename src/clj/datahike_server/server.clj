@@ -45,19 +45,22 @@
 
 (s/def ::entity-request (s/keys :req-un [::eid]))
 
-(s/def ::backend #{:mem :file :pg :level})
+(s/def ::backend #{:mem :file})
 (s/def ::username string?)
 (s/def ::password string?)
 (s/def ::path string?)
 (s/def ::host string?)
 (s/def ::port number?)
 (s/def ::name string?)
-(s/def ::store (s/keys :req-un [::backend ]
-                       :opt-un [::username ::path ::password ::host ::port]))
-(s/def ::schema-on-read boolean?)
-(s/def ::temporal-index boolean?)
-(s/def ::new-database (s/keys :req-un [::store ::name]
-                              :opt-un [::schema-on-read ::temporal-index]))
+(s/def ::ssl boolean?)
+(s/def ::sslfactory string?)
+(s/def ::id string?)
+(s/def ::store (s/keys :req-un [::backend]
+                       :opt-un [::username ::path ::password ::host ::port ::id ::ssl ::sslfactory]))
+(s/def ::schema-flexibility #{:read :write})
+(s/def ::keep-history? boolean?)
+(s/def ::new-database (s/keys :req-un [::store]
+                              :opt-un [::schema-flexibility ::keep-history? ::name]))
 
 (s/def ::db-id string?)
 
@@ -90,14 +93,20 @@
                       {:status 200})}}]
 
    ["/databases/:id"
-    {:delete {:summary "Deletes database."
+    {:swagger {:tags ["database"]}
+     :delete {:summary "Deletes database."
               :parameters {:path {:id ::db-id}}
               :handler h/delete-database}}]
 
    ["/databases/:id/connections"
-    {:post {:summary "Connect to database."
+    {:swagger {:tags ["connection"]}
+     :post {:summary "Connect to database."
             :parameters {:path {:id ::db-id}}
             :handler h/connect}}]
+
+   ["/connections" {:swagger {:tags ["connection"]}
+                    :get {:summary "Lists all available connections"
+                          :handler h/list-connections}}]
 
    ["/transact"
     {:swagger {:tags ["transact"]}

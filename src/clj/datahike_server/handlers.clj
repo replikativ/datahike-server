@@ -5,7 +5,6 @@
             [clojure.core.async :refer [<!!]]
             [datahike.api :as d]
             [datahike.db :as dd]
-            [datahike.config :as dc]
             [datahike.core :as c])
   (:import [java.util UUID]))
 
@@ -15,15 +14,13 @@
 
 (defn connect [{{:keys [id]} :path-params}]
   (let [config (<!! (k/get-in (:store @database) [:configurations id]))]
-    (dc/reload-config config)
-    (swap! database assoc-in [:connections id] (d/connect))
+    (swap! database assoc-in [:connections id] (d/connect config))
     (success)))
 
 (defn create-database [{{config :body} :parameters}]
   (let [id (str (UUID/randomUUID))]
     (<!! (k/assoc-in (:store @database) [:configurations id] config))
-    (dc/reload-config config)
-    (d/create-database)
+    (d/create-database config)
     (success {:id id})))
 
 (defn delete-database [{{{:keys [id]} :path} :parameters}]
@@ -36,6 +33,11 @@
   (let [databases (for [[id config] (<!! (k/get-in (:store @database) [:configurations]))]
                     (assoc config :id id))]
     (success {:databases (vec databases)})))
+
+(defn list-connections [_]
+  (let [conns (for [[id conn] (:connections @database [])]
+                [id (:config @conn)])]
+    (success {:connections conns})))
 
 (defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters conn :conn}]
   (let [result (d/transact conn {:tx-data tx-data

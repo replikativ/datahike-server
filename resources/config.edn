@@ -1,6 +1,7 @@
-{:store {:backend :file
-         :path "/tmp/dh-2"}
+{:store {:backend :mem
+         :id "the-transactor"}
  :server {:port  3000
           :join? false}
- :schema-on-read true
- :temporal-index false}
+ :name "the-transactor"
+ :schema-flexibility :read
+ :keep-history? true}
