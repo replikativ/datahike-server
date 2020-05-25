@@ -1,14 +1,18 @@
-# datahike-server
+<h1 align="center">Datahike Remote Server</h1>
 
-A Clojure library designed to ... well, that part is up to you.
+A remote server for handling [Datahike](https://github.com/replikativ/datahike) databases and connetions via HTTP interfaces.
 
 ## Usage
+Start a Clojure REPL in `datahike-server.core:
+Start all systems with:
+````clojure
+(mount/start)
+````
 
-FIXME
 
 ## License
 
-Copyright © 2020 FIXME
+Copyright © 2020 lambdaforge UG (haftungsbeschränkt)
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
