@@ -11,8 +11,10 @@
   :stop (do
           (println "Cleaning up connections...")
           (swap! database update :connections (fn [old]
-                                            (for [[id conn] old]
-                                              (d/release conn))))
+                                                (for [[id conn] old]
+                                                  (do
+                                                    (<!! (k/update-in (:store @database) [:configurations] dissoc id))
+                                                    (d/release conn)))))
           (swap! database dissoc :connections)
           (println "Done")
           (println "Disconnecting from store...")
