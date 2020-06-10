@@ -217,7 +217,7 @@
                    :operationsSorter "alpha"}})
         (ring/create-default-handler)))
       wrap-db-connection
-      (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080"]
+      (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
                  :access-control-allow-methods [:get :put :post :delete])))
 
 (defn start-server []
