@@ -63,6 +63,7 @@
                               :opt-un [::schema-flexibility ::keep-history? ::name]))
 
 (s/def ::db-id string?)
+(s/def ::query-id number?)
 
 (s/def ::db-header (s/keys :req-un [::db-id]))
 
@@ -74,7 +75,7 @@
            :handler (swagger/create-swagger-handler)}}]
 
    ["/databases"
-    {:swagger {:tags ["database"]}
+    {:swagger {:tags ["database" "API"]}
      :get {:summary "List available databases."
            :handler h/list-databases}
 
@@ -93,13 +94,13 @@
                       {:status 200})}}]
 
    ["/databases/:id"
-    {:swagger {:tags ["database"]}
+    {:swagger {:tags ["database" "API"]}
      :delete {:summary "Deletes database."
               :parameters {:path {:id ::db-id}}
               :handler h/delete-database}}]
 
    ["/databases/:id/connections"
-    {:swagger {:tags ["connection"]}
+    {:swagger {:tags ["connection" "API"]}
      :post {:summary "Connect to database."
             :parameters {:path {:id ::db-id}}
             :handler h/connect}}]
@@ -109,49 +110,68 @@
                           :handler h/list-connections}}]
 
    ["/transact"
-    {:swagger {:tags ["transact"]}
+    {:swagger {:tags ["transact" "API"]}
      :post {:summary "Applies transaction to the underlying database value."
-            :parameters {:body ::transactions :header ::db-header}
+            :parameters {:body ::transactions
+                         :header ::db-header}
             :handler h/transact}}]
 
    ["/q"
-    {:swagger {:tags ["search"]}
+    {:swagger {:tags ["search" "API"]}
      :post {:summary "Executes a datalog query."
-            :parameters {:body ::query-request :header ::db-header}
+            :parameters {:body ::query-request
+                         :header ::db-header}
             :handler h/q}}]
 
+   ["/queries"
+    {:swagger {:tags ["query" "utils"]}
+     :post {:summary "Save a query."
+            :parameters {:body ::query-request
+                         :header ::db-header}
+            :handler h/save-query}
+     :get {:summary "Load all queries"
+           :parameters {:header ::db-header}
+           :handler h/load-queries}}]
+
+   ["/queries/:id"
+    {:swagger {:tags ["query" "utils"]}
+     :delete {:summary "Delete specific query"
+              :parameters {:path {:id ::query-id}
+                           :header ::db-header}
+              :handler h/delete-query}}]
+
    ["/pull"
-    {:swagger {:tags ["search"]}
+    {:swagger {:tags ["search" "API"]}
      :post {:summary "Fetches data from database using recursive declarative description."
             :parameters {:body ::pull-request :header ::db-header}
             :handler h/pull}}]
 
    ["/pull-many"
-    {:swagger {:tags ["search"]}
+    {:swagger {:tags ["search" "API"]}
      :post {:summary "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
             :parameters {:body ::pull-many-request :header ::db-header}
             :handler h/pull-many}}]
 
    ["/datoms"
-    {:swagger {:tags ["search"]}
+    {:swagger {:tags ["search" "API"]}
      :post {:summary "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
             :parameters {:body ::datoms-request :header ::db-header}
             :handler h/datoms}}]
 
    ["/seek datoms"
-    {:swagger {:tags ["search"]}
+    {:swagger {:tags ["search" "API"]}
      :post {:summary "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
             :parameters {:body ::datoms-request :header ::db-header}
             :handler h/seek-datoms}}]
 
    ["/tempid"
-    {:swagger {:tags ["utils"]}
+    {:swagger {:tags ["utils" "API"]}
      :get {:summary "Allocates and returns an unique temporary id."
            :parameters {:header ::db-header}
            :handler h/tempid}}]
 
    ["/entity"
-    {:swagger {:tags ["search"]}
+    {:swagger {:tags ["search" "API"]}
      :post {:summary "Retrieves an entity by its id from database."
             :parameters {:body ::entity-request :header ::db-header}
             :handler h/entity}}]
@@ -170,7 +190,6 @@
         (handler request))
       (handler request))))
 
-
 (def route-opts
   {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
    ;; :validate spec/validate ;; enable spec validation for route data
@@ -186,8 +205,7 @@
                             muuntaja/format-request-middleware
                             coercion/coerce-response-middleware
                             coercion/coerce-request-middleware
-                            multipart/multipart-middleware
-                            ]}})
+                            multipart/multipart-middleware]}})
 
 (def app
   (-> (ring/ring-handler

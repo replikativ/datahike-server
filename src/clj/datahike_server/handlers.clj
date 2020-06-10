@@ -18,9 +18,14 @@
     (success)))
 
 (defn create-database [{{config :body} :parameters}]
-  (let [id (str (UUID/randomUUID))]
+  (let [id (str (UUID/randomUUID))
+        initial-tx [{:db/ident :user/query
+                     :db/valueType :db.type/string
+                     :db/cardinality :db.cardinality/one}]]
     (<!! (k/assoc-in (:store @database) [:configurations id] config))
-    (d/create-database config)
+    (d/create-database (update config :initial-tx #(if (nil? %)
+                                                     initial-tx
+                                                     (concat % initial-tx))))
     (success {:id id})))
 
 (defn delete-database [{{{:keys [id]} :path} :parameters}]
@@ -39,21 +44,26 @@
                 [id (:config @conn)])]
     (success {:connections conns})))
 
+(defn cleanup-result [result]
+  (-> result
+      (dissoc :db-after :db-before)
+      (update :tx-data #(mapv (comp vec seq) %))
+      (update :tx-meta #(mapv (comp vec seq) %))))
+
 (defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters conn :conn}]
   (let [result (d/transact conn {:tx-data tx-data
                                  :tx-meta tx-meta})]
+
     (-> result
-        (dissoc :db-after :db-before)
-        (update :tx-data #(mapv (comp vec seq) %))
-        (update :tx-meta #(mapv (comp vec seq) %))
+        cleanup-result
         success)))
 
 (defn q [{{:keys [body]} :parameters conn :conn}]
   (success (into []
                  (d/q {:query (:query body [])
-                      :args (concat [@conn] (:args body []))
-                      :limit (:limit body -1)
-                      :offset (:offset body 0)}))))
+                       :args (concat [@conn] (:args body []))
+                       :limit (:limit body -1)
+                       :offset (:offset body 0)}))))
 
 (defn pull [{{{:keys [selector eid]} :body} :parameters conn :conn}]
   (success (d/pull @conn selector eid)))
@@ -77,3 +87,16 @@
 
 (defn schema [{:keys [conn]}]
   (success (dd/-schema @conn)))
+
+(defn save-query [{{{:keys [query]} :body} :parameters conn :conn}]
+  (-> (d/transact conn [{:user/query (str query)}])
+      cleanup-result
+      success))
+
+(defn load-queries [{:keys [conn]}]
+  (success {:queries (d/q '[:find (pull ?e [:user/query :db/id]) :where [?e :user/query _]] @conn)}))
+
+(defn delete-query [{{{:keys [id]} :path} :parameters conn :conn}]
+  (-> (d/transact conn [[:db/retractEntity id]])
+      cleanup-result
+      success))
