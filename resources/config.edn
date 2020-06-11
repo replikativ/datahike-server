@@ -3,4 +3,5 @@
  :server {:port  3000
           :join? false}
  :schema-on-read true
- :temporal-index false}
+ :temporal-index false
+ :logging {:level :debug}}

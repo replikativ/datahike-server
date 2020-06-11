@@ -10,7 +10,8 @@
                  [ring/ring-jetty-adapter "1.6.3"]
                  [metosin/reitit "0.4.2"]
                  [ring-cors "0.1.13"]
-                 [mount "0.1.16"]]
+                 [mount "0.1.16"]
+                 [com.taoensso/timbre "4.10.0"]]
   :source-paths ["src/clj"]
   :main datahike-server.core
   :aot [datahike-server.core]
