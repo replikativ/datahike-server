@@ -11,14 +11,13 @@
             [reitit.ring.middleware.parameters :as parameters]
             [ring.middleware.cors :refer [wrap-cors]]
             [muuntaja.core :as m]
-            [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [datahike-server.handlers :as h]
             [datahike-server.config :refer [config]]
             [datahike-server.database :refer [database]]
             [mount.core :refer [defstate]]
-            [ring.adapter.jetty :refer [run-jetty]])
-  (:import (java.util UUID)))
+            [ring.adapter.jetty :refer [run-jetty]]
+            [clojure.pprint :refer [pprint]]))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
@@ -45,27 +44,10 @@
 
 (s/def ::entity-request (s/keys :req-un [::eid]))
 
-(s/def ::backend #{:mem :file})
-(s/def ::username string?)
-(s/def ::password string?)
-(s/def ::path string?)
-(s/def ::host string?)
-(s/def ::port number?)
-(s/def ::name string?)
-(s/def ::ssl boolean?)
-(s/def ::sslfactory string?)
-(s/def ::id string?)
-(s/def ::store (s/keys :req-un [::backend]
-                       :opt-un [::username ::path ::password ::host ::port ::id ::ssl ::sslfactory]))
-(s/def ::schema-flexibility #{:read :write})
-(s/def ::keep-history? boolean?)
-(s/def ::new-database (s/keys :req-un [::store]
-                              :opt-un [::schema-flexibility ::keep-history? ::name]))
-
-(s/def ::db-id string?)
+(s/def ::db-name string?)
 (s/def ::query-id number?)
 
-(s/def ::db-header (s/keys :req-un [::db-id]))
+(s/def ::db-header (s/keys :req-un [::db-name]))
 
 (def routes
   [["/swagger.json"
@@ -77,37 +59,17 @@
    ["/databases"
     {:swagger {:tags ["database" "API"]}
      :get {:summary "List available databases."
-           :handler h/list-databases}
-
-     :post {:summary "Creates a new database."
-            :parameters {:body ::new-database}
-            :handler h/create-database}}]
+           :handler h/list-databases}}]
 
    ["/echo"
     {:get {:handler (fn [request]
-                      (clojure.pprint/pprint request)
+                      (pprint request)
                       {:status 200})}}]
 
    ["/echo/:id"
     {:get {:handler (fn [request]
-                      (clojure.pprint/pprint request)
+                      (pprint request)
                       {:status 200})}}]
-
-   ["/databases/:id"
-    {:swagger {:tags ["database" "API"]}
-     :delete {:summary "Deletes database."
-              :parameters {:path {:id ::db-id}}
-              :handler h/delete-database}}]
-
-   ["/databases/:id/connections"
-    {:swagger {:tags ["connection" "API"]}
-     :post {:summary "Connect to database."
-            :parameters {:path {:id ::db-id}}
-            :handler h/connect}}]
-
-   ["/connections" {:swagger {:tags ["connection"]}
-                    :get {:summary "Lists all available connections"
-                          :handler h/list-connections}}]
 
    ["/transact"
     {:swagger {:tags ["transact" "API"]}
@@ -122,23 +84,6 @@
             :parameters {:body ::query-request
                          :header ::db-header}
             :handler h/q}}]
-
-   ["/queries"
-    {:swagger {:tags ["query" "utils"]}
-     :post {:summary "Save a query."
-            :parameters {:body ::query-request
-                         :header ::db-header}
-            :handler h/save-query}
-     :get {:summary "Load all queries"
-           :parameters {:header ::db-header}
-           :handler h/load-queries}}]
-
-   ["/queries/:id"
-    {:swagger {:tags ["query" "utils"]}
-     :delete {:summary "Delete specific query"
-              :parameters {:path {:id ::query-id}
-                           :header ::db-header}
-              :handler h/delete-query}}]
 
    ["/pull"
     {:swagger {:tags ["search" "API"]}
@@ -184,8 +129,8 @@
 
 (defn wrap-db-connection [handler]
   (fn [request]
-    (if-let [db-id (get-in request [:headers "db-id"])]
-      (if-let [conn (get-in @database [:connections db-id])]
+    (if-let [db-name (get-in request [:headers "db-name"])]
+      (if-let [conn (get-in @database [:connections db-name])]
         (handler (assoc request :conn conn))
         (handler request))
       (handler request))))

@@ -1,43 +1,19 @@
 (ns datahike-server.handlers
   (:require [datahike-server.database :refer [database]]
-            [konserve.core :as k]
-            [konserve.filestore :refer [list-keys]]
-            [clojure.core.async :refer [<!!]]
             [datahike.api :as d]
             [datahike.db :as dd]
-            [datahike.core :as c])
-  (:import [java.util UUID]))
+            [datahike.core :as c]))
 
 (defn success
   ([data] {:status 200 :body data})
   ([] {:status 200}))
 
-(defn connect [{{:keys [id]} :path-params}]
-  (let [config (<!! (k/get-in (:store @database) [:configurations id]))]
-    (swap! database assoc-in [:connections id] (d/connect config))
-    (success)))
-
-(defn create-database [{{config :body} :parameters}]
-  (let [id (str (UUID/randomUUID))
-        initial-tx [{:db/ident :user/query
-                     :db/valueType :db.type/string
-                     :db/cardinality :db.cardinality/one}]]
-    (<!! (k/assoc-in (:store @database) [:configurations id] config))
-    (d/create-database (update config :initial-tx #(if (nil? %)
-                                                     initial-tx
-                                                     (concat % initial-tx))))
-    (success {:id id})))
-
-(defn delete-database [{{{:keys [id]} :path} :parameters}]
-  (let [config (<!! (k/get-in (:store @database) [:configurations id]))]
-    (d/delete-database config)
-    (<!! (k/update-in (:store @database) [:configurations] #(dissoc % id)))
-    (success {:id id})))
-
 (defn list-databases [_]
-  (let [databases (for [[id config] (<!! (k/get-in (:store @database) [:configurations]))]
-                    (assoc config :id id))]
-    (success {:databases (vec databases)})))
+  (let [xf (comp
+            (map deref)
+            (map :config))
+        databases (into [] xf (-> @database :connections vals))]
+    (success {:databases databases})))
 
 (defn list-connections [_]
   (let [conns (for [[id conn] (:connections @database [])]
@@ -87,16 +63,3 @@
 
 (defn schema [{:keys [conn]}]
   (success (dd/-schema @conn)))
-
-(defn save-query [{{{:keys [query]} :body} :parameters conn :conn}]
-  (-> (d/transact conn [{:user/query (str query)}])
-      cleanup-result
-      success))
-
-(defn load-queries [{:keys [conn]}]
-  (success {:queries (d/q '[:find (pull ?e [:user/query :db/id]) :where [?e :user/query _]] @conn)}))
-
-(defn delete-query [{{{:keys [id]} :path} :parameters conn :conn}]
-  (-> (d/transact conn [[:db/retractEntity id]])
-      cleanup-result
-      success))

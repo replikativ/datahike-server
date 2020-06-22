@@ -1,7 +1,12 @@
-{:store {:backend :mem
-         :id "the-transactor"}
+{:databases [{:store {:backend :mem
+                      :id "sessions"}
+              :schema-flexibility :read
+              :keep-history? false
+              :name "sessions"}
+             {:store {:backend :file
+                      :path "/tmp/dh-0"}
+              :name "users"
+              :keep-history? true
+              :schema-flexibility :write}]
  :server {:port  3000
-          :join? false}
- :name "the-transactor"
- :schema-flexibility :read
- :keep-history? true}
+          :join? false}}
