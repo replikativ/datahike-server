@@ -47,7 +47,10 @@
 (s/def ::db-name string?)
 (s/def ::query-id number?)
 
-(s/def ::db-header (s/keys :req-un [::db-name]))
+(s/def ::conn-header (s/keys :req-un [::db-name]))
+
+(s/def ::db-hash number?)
+(s/def ::db-header (s/keys :req-un [::db-name ::db-hash]))
 
 (def routes
   [["/swagger.json"
@@ -75,8 +78,14 @@
     {:swagger {:tags ["transact" "API"]}
      :post {:summary "Applies transaction to the underlying database value."
             :parameters {:body ::transactions
-                         :header ::db-header}
+                         :header ::conn-header}
             :handler h/transact}}]
+
+   ["/db"
+    {:swagger {:tags ["database" "API"]}
+     :get {:summary "Get current database as a hash."
+           :parameters {:headers ::db-header}
+           :handler h/get-db}}]
 
    ["/q"
     {:swagger {:tags ["search" "API"]}
@@ -112,7 +121,7 @@
    ["/tempid"
     {:swagger {:tags ["utils" "API"]}
      :get {:summary "Allocates and returns an unique temporary id."
-           :parameters {:header ::db-header}
+           :parameters {:header ::conn-header}
            :handler h/tempid}}]
 
    ["/entity"
