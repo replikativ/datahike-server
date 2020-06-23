@@ -15,6 +15,12 @@
         databases (into [] xf (-> @database :connections vals))]
     (success {:databases databases})))
 
+(defn get-db [{:keys [conn]}]
+  (let [db @conn
+        h (hash db)]
+    (swap! database assoc-in [:dbs h] db)
+    (success {:hash h})))
+
 (defn list-connections [_]
   (let [conns (for [[id conn] (:connections @database [])]
                 [id (:config @conn)])]

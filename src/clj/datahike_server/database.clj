@@ -10,7 +10,7 @@
    (fn [acc {:keys [name] :as cfg}]
      (when (contains? acc name)
        (throw (ex-info
-               (str "A database with name '" name "' already exists. Database names on the transactor should be unique")
+               (str "A database with name '" name "' already exists. Database names on the transactor should be unique.")
                {:event :connection/initialization
                 :error :database.name/duplicate})))
      (when-not (d/database-exists? cfg)
