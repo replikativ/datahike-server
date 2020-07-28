@@ -17,7 +17,8 @@
             [datahike-server.database :refer [database]]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]]
+            [datahike.api :as d]))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
@@ -42,7 +43,8 @@
 (s/def ::components (s/coll-of any?))
 (s/def ::datoms-request (s/keys :req-un [::index] :opt-un [::components]))
 
-(s/def ::entity-request (s/keys :req-un [::eid]))
+(s/def ::attr keyword?)
+(s/def ::entity-request (s/keys :req-un [::eid] :opt-un [::attr]))
 
 (s/def ::db-name string?)
 (s/def ::query-id number?)
@@ -50,7 +52,10 @@
 (s/def ::conn-header (s/keys :req-un [::db-name]))
 
 (s/def ::db-hash number?)
-(s/def ::db-header (s/keys :req-un [::db-name ::db-hash]))
+
+(s/def ::db-tx int?)
+(s/def ::db-header (s/keys :req-un [::db-name]
+                           :opt-un [::db-tx]))
 
 (def routes
   [["/swagger.json"
@@ -61,86 +66,96 @@
 
    ["/databases"
     {:swagger {:tags ["database" "API"]}
-     :get {:summary "List available databases."
-           :handler h/list-databases}}]
+     :get     {:summary "List available databases."
+               :handler h/list-databases}}]
 
    ["/echo"
-    {:get {:handler (fn [request]
-                      (pprint request)
-                      {:status 200})}}]
+    {:get  {:summary "For testing purposes only."
+            :handler (fn [request]
+                       (pprint request)
+                       {:status 200})}
+     :post {:parameters {:body map?}
+            :handler    (fn [request]
+                          (pprint request)
+                          {:status 200})}}]
 
    ["/echo/:id"
-    {:get {:handler (fn [request]
+    {:get {:summary "For testing purposes only."
+           :handler (fn [request]
                       (pprint request)
                       {:status 200})}}]
 
    ["/transact"
     {:swagger {:tags ["transact" "API"]}
-     :post {:summary "Applies transaction to the underlying database value."
-            :parameters {:body ::transactions
-                         :header ::conn-header}
-            :handler h/transact}}]
+     :post    {:summary    "Applies transaction to the underlying database value."
+               :parameters {:body   ::transactions
+                            :header ::conn-header}
+               :handler    h/transact}}]
 
    ["/db"
     {:swagger {:tags ["database" "API"]}
-     :get {:summary "Get current database as a hash."
-           :parameters {:headers ::db-header}
-           :handler h/get-db}}]
+     :get     {:summary    "Get current database as a hash."
+               :parameters {:header ::conn-header}
+               :handler    h/get-db}}]
 
    ["/q"
     {:swagger {:tags ["search" "API"]}
-     :post {:summary "Executes a datalog query."
-            :parameters {:body ::query-request
-                         :header ::db-header}
-            :handler h/q}}]
+     :post    {:summary    "Executes a datalog query."
+               :parameters {:body   ::query-request
+                            :header ::db-header}
+               :handler    h/q}}]
 
    ["/pull"
     {:swagger {:tags ["search" "API"]}
-     :post {:summary "Fetches data from database using recursive declarative description."
-            :parameters {:body ::pull-request :header ::db-header}
-            :handler h/pull}}]
+     :post    {:summary    "Fetches data from database using recursive declarative description."
+               :parameters {:body ::pull-request :header ::db-header}
+               :handler    h/pull}}]
 
    ["/pull-many"
     {:swagger {:tags ["search" "API"]}
-     :post {:summary "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
-            :parameters {:body ::pull-many-request :header ::db-header}
-            :handler h/pull-many}}]
+     :post    {:summary    "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
+               :parameters {:body ::pull-many-request :header ::db-header}
+               :handler    h/pull-many}}]
 
    ["/datoms"
     {:swagger {:tags ["search" "API"]}
-     :post {:summary "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
-            :parameters {:body ::datoms-request :header ::db-header}
-            :handler h/datoms}}]
+     :post    {:summary    "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
+               :parameters {:body ::datoms-request :header ::db-header}
+               :handler    h/datoms}}]
 
    ["/seek datoms"
     {:swagger {:tags ["search" "API"]}
-     :post {:summary "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
-            :parameters {:body ::datoms-request :header ::db-header}
-            :handler h/seek-datoms}}]
+     :post    {:summary    "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
+               :parameters {:body ::datoms-request :header ::db-header}
+               :handler    h/seek-datoms}}]
 
    ["/tempid"
     {:swagger {:tags ["utils" "API"]}
-     :get {:summary "Allocates and returns an unique temporary id."
-           :parameters {:header ::conn-header}
-           :handler h/tempid}}]
+     :get     {:summary    "Allocates and returns an unique temporary id."
+               :parameters {:header ::conn-header}
+               :handler    h/tempid}}]
 
    ["/entity"
     {:swagger {:tags ["search" "API"]}
-     :post {:summary "Retrieves an entity by its id from database."
-            :parameters {:body ::entity-request :header ::db-header}
-            :handler h/entity}}]
+     :post    {:summary    "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
+               :parameters {:body ::entity-request :header ::db-header}
+               :handler    h/entity}}]
 
    ["/schema"
     {:swagger {:tags ["utils"]}
-     :get {:summary "Fetches current schema"
-           :parameters {:header ::db-header}
-           :handler h/schema}}]])
+     :get     {:summary    "Fetches current schema"
+               :parameters {:header ::db-header}
+               :handler    h/schema}}]])
 
 (defn wrap-db-connection [handler]
   (fn [request]
     (if-let [db-name (get-in request [:headers "db-name"])]
       (if-let [conn (get-in @database [:connections db-name])]
-        (handler (assoc request :conn conn))
+        (if-let [tx (get-in request [:headers "db-tx"])]
+          (if-let [db (d/as-of @conn (Integer/parseInt tx))]
+            (handler (assoc request :db db :conn conn))
+            (handler request))
+          (handler (assoc request :conn conn)))
         (handler request))
       (handler request))))
 
@@ -163,13 +178,13 @@
 
 (def app
   (-> (ring/ring-handler
-       (ring/router routes route-opts)
-       (ring/routes
-        (swagger-ui/create-swagger-ui-handler
-         {:path   "/"
-          :config {:validatorUrl     nil
-                   :operationsSorter "alpha"}})
-        (ring/create-default-handler)))
+        (ring/router routes route-opts)
+        (ring/routes
+          (swagger-ui/create-swagger-ui-handler
+            {:path   "/"
+             :config {:validatorUrl     nil
+                      :operationsSorter "alpha"}})
+          (ring/create-default-handler)))
       wrap-db-connection
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
                  :access-control-allow-methods [:get :put :post :delete])))

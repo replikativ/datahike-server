@@ -1,10 +1,10 @@
-{:databases [{:store {:backend :mem
-                      :id "sessions"}
+{:databases [{:store {:backend :file
+                      :path "/tmp/dh-sessions"}
               :schema-flexibility :read
               :keep-history? false
               :name "sessions"}
              {:store {:backend :file
-                      :path "/tmp/dh-0"}
+                      :path "/tmp/dh-users"}
               :name "users"
               :keep-history? true
               :schema-flexibility :write}]

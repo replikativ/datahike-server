@@ -5,6 +5,12 @@
             [datahike-server.database]
             [datahike-server.server]))
 
+(defn start-all []
+  (mount/start))
+
+(defn stop-all []
+  (mount/stop))
+
 (defn -main [& args]
   (mount/start))
 
@@ -12,5 +18,8 @@
 
   (mount/start)
 
-  (mount/stop))
+  (mount/stop)
+)
+
+
 

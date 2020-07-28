@@ -16,15 +16,7 @@
     (success {:databases databases})))
 
 (defn get-db [{:keys [conn]}]
-  (let [db @conn
-        h (hash db)]
-    (swap! database assoc-in [:dbs h] db)
-    (success {:hash h})))
-
-(defn list-connections [_]
-  (let [conns (for [[id conn] (:connections @database [])]
-                [id (:config @conn)])]
-    (success {:connections conns})))
+  (success {:tx (dd/-max-tx @conn)}))
 
 (defn cleanup-result [result]
   (-> result
@@ -62,10 +54,12 @@
 (defn tempid [_]
   (success {:tempid (d/tempid :db.part/db)}))
 
-(defn entity [{{{:keys [eid]} :body} :parameters conn :conn}]
-  (success (->> (d/entity @conn eid)
-                c/touch
-                (into {}))))
+(defn entity [{{{:keys [eid attr]} :body} :parameters conn :conn}]
+  (if attr
+    (success (get (d/entity @conn eid) attr))
+    (success (->> (d/entity @conn eid)
+                  c/touch
+                  (into {})))))
 
 (defn schema [{:keys [conn]}]
   (success (dd/-schema @conn)))
