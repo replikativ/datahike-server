@@ -6,12 +6,12 @@
   (testing "Loading bad config file"
     (with-redefs [load-config-file (constantly {:server {:join? :baz}})]
       (is (= {:server {:port 3000 :join? false :loglevel :info}
-              :datahike {}}
+              :datahike nil}
              (load-config "foobar")))
       (is (= {:server {:port 3000 :join? false :loglevel :info}
-              :datahike {}}
+              :datahike nil}
              (load-config :foobar))))))
-    
+
 (deftest config-test
   (testing "Loading good config file"
       (with-redefs [load-config-file (constantly {:datahike {:backend :file
@@ -38,19 +38,19 @@
                  :password "test",
                  :host "testhost",
                  :port 12345,
-                 :path "/testdb"}} 
+                 :path "/testdb"}}
                (load-config "foobar"))))
       (with-redefs [load-config-file (constantly {:foo {:bar :baz}})]
         (is (= {:server {:port 3000 :join? false :loglevel :info}
-                :datahike {}}
+                :datahike nil}
                (load-config "foobar"))))
       (with-redefs [load-config-file (constantly nil)]
         (is (= {:server {:port 3000 :join? false :loglevel :info}
-                :datahike {}}
+                :datahike nil}
                (load-config "foobar"))))
       (with-redefs [load-config-file (constantly "foobar")]
         (is (= {:server {:port 3000 :join? false :loglevel :info}
-                :datahike {}}
+                :datahike nil}
                (load-config "foobar"))))))
 
 (deftest load-config-file-test
