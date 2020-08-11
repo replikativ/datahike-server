@@ -1,0 +1,7 @@
+{:datahike {:store {:backend :file
+                    :path "/tmp/dh-2"}
+            :schema-on-read true
+            :temporal-index false}
+ :server {:port  3333
+          :join? false
+          :loglevel :debug}}

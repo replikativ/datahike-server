@@ -5,17 +5,28 @@
             [datahike.api :as d])
   (:import [java.util UUID]))
 
+(defn connect [config]
+ (if-let [datahike-config (:datahike config)]
+    (when-not (d/database-exists? datahike-config)
+      (log/infof "Creating database..." datahike-config)
+      (d/create-database datahike-config)
+      (log/infof "Database created.")
+      (d/connect datahike-config))
+    (when-not (d/database-exists?)
+      (log/infof "Creating database...")
+      (d/create-database)
+      (log/infof "Database created.")
+      (d/connect))))
+
 (defstate conn
-  :start
-  (let [store-config (:store config {:backend :mem :path (str"/dh/" (UUID/randomUUID))})]
-    (when-not (d/database-exists? store-config)
-      (log/infof "Creating database..." store-config)
-      (d/create-database store-config
-                         :temporal-index (:temporal-index config false)
-                         :schema-on-read (:schema-on-read config true))
-      (log/infof "Database created."))
-    (log/info "Connecting to database...")
-    (d/connect store-config))
+  :start (do
+           (log/debug "Connecting database with config: " (str config))
+           (connect config))
   :stop (d/release conn))
 
-
+(comment
+  (connect {:datahike {:store {:backend :foo
+                               :path    :baz}}})
+  (d/database-exists?)
+  (d/create-database)
+  (connect nil))

@@ -15,6 +15,7 @@
             [clojure.spec.alpha :as s]
             [datahike-server.handlers :as h]
             [datahike-server.config :refer [config]]
+            [taoensso.timbre :as log]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]])
   (:import (java.util UUID)))
@@ -132,9 +133,11 @@
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080"]
                  :access-control-allow-methods [:get :put :post :delete])))
 
-(defn start-server []
+(defn start-server [config]
   (run-jetty app (:server config)))
 
 (defstate server
-  :start (start-server)
+  :start (do
+           (log/debug "Starting server")
+           (start-server config))
   :stop (.stop server))
