@@ -14,7 +14,8 @@
             [clojure.spec.alpha :as s]
             [datahike-server.handlers :as h]
             [datahike-server.config :refer [config]]
-            [datahike-server.database :refer [database]]
+            [datahike-server.database :refer [conns]]
+            [taoensso.timbre :as log]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]]
             [clojure.pprint :refer [pprint]]
@@ -150,7 +151,7 @@
 (defn wrap-db-connection [handler]
   (fn [request]
     (if-let [db-name (get-in request [:headers "db-name"])]
-      (if-let [conn (get-in @database [:connections db-name])]
+      (if-let [conn (conns db-name)]
         (if-let [tx (get-in request [:headers "db-tx"])]
           (if-let [db (d/as-of @conn (Integer/parseInt tx))]
             (handler (assoc request :db db :conn conn))
@@ -189,10 +190,12 @@
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
                  :access-control-allow-methods [:get :put :post :delete])))
 
-(defn start-server []
+(defn start-server [config]
   (run-jetty app (:server config)))
 
 (defstate server
-  :start (start-server)
+  :start (do
+           (log/debug "Starting server")
+           (start-server config))
   :stop (.stop server))
 

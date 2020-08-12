@@ -1,12 +1,13 @@
-{:databases [{:store {:backend :file
-                      :path "/tmp/dh-sessions"}
+{:databases [{:store {:backend :mem
+                      :id "sessions"}
               :schema-flexibility :read
               :keep-history? false
               :name "sessions"}
              {:store {:backend :file
-                      :path "/tmp/dh-users"}
+                      :path "/tmp/dh-file"}
               :name "users"
               :keep-history? true
               :schema-flexibility :write}]
- :server {:port  3000
-          :join? false}}
+ :server {:port  3333
+          :join? false
+          :loglevel :debug}}

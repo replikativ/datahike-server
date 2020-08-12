@@ -1,5 +1,5 @@
 (ns datahike-server.handlers
-  (:require [datahike-server.database :refer [database]]
+  (:require [datahike-server.database :refer [conns]]
             [datahike.api :as d]
             [datahike.db :as dd]
             [datahike.core :as c]))
@@ -12,7 +12,7 @@
   (let [xf (comp
             (map deref)
             (map :config))
-        databases (into [] xf (-> @database :connections vals))]
+        databases (into [] xf (-> conns vals))]
     (success {:databases databases})))
 
 (defn get-db [{:keys [conn]}]

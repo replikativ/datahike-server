@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containergroupname": {
+      "value": "datahike-server"
+    },
+    "image": {
+      "value": "mopedtobias/datahike-server:latest"
+    },
+    "port": {
+      "value": "3000"
+    },
+    "environmentVariables": {
+      "value": [
+        {
+          "name": "DATAHIKE_STORE_BACKEND",
+          "value": "file"
+        },
+        {
+          "name": "DATAHIKE_STORE_PATH",
+          "value": "/opt/datahike-server/db-1"
+        }
+      ]
+    },
+    "environment-tag": {
+      "value": "test"
+    }
+  }
+}
