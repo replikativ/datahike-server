@@ -32,34 +32,35 @@
         cleanup-result
         success)))
 
-(defn q [{{:keys [body]} :parameters conn :conn}]
+(defn q [{{:keys [body]} :parameters conn :conn db :db}]
   (success (into []
                  (d/q {:query (:query body [])
-                       :args (concat [@conn] (:args body []))
+                       :args (concat [(or db @conn)] (:args body []))
                        :limit (:limit body -1)
                        :offset (:offset body 0)}))))
 
-(defn pull [{{{:keys [selector eid]} :body} :parameters conn :conn}]
-  (success (d/pull @conn selector eid)))
+(defn pull [{{{:keys [selector eid]} :body} :parameters conn :conn db :db}]
+  (success (d/pull (or db @conn) selector eid)))
 
-(defn pull-many [{{{:keys [selector eids]} :body} :parameters conn :conn}]
-  (success (vec (d/pull-many @conn selector eids))))
+(defn pull-many [{{{:keys [selector eids]} :body} :parameters conn :conn db :db}]
+  (success (vec (d/pull-many (or db @conn) selector eids))))
 
-(defn datoms [{{{:keys [index components]} :body} :parameters conn :conn}]
-  (success (mapv (comp vec seq) (apply d/datoms (into [@conn index] components)))))
+(defn datoms [{{{:keys [index components]} :body} :parameters conn :conn db :db}]
+  (success (mapv (comp vec seq) (apply d/datoms (into [(or db @conn) index] components)))))
 
-(defn seek-datoms [{{{:keys [index components]} :body} :parameters conn :conn}]
-  (success (mapv (comp vec seq) (apply d/seek-datoms (into [@conn index] components)))))
+(defn seek-datoms [{{{:keys [index components]} :body} :parameters conn :conn db :db}]
+  (success (mapv (comp vec seq) (apply d/seek-datoms (into [(or db @conn) index] components)))))
 
 (defn tempid [_]
   (success {:tempid (d/tempid :db.part/db)}))
 
-(defn entity [{{{:keys [eid attr]} :body} :parameters conn :conn}]
-  (if attr
-    (success (get (d/entity @conn eid) attr))
-    (success (->> (d/entity @conn eid)
-                  c/touch
-                  (into {})))))
+(defn entity [{{{:keys [eid attr]} :body} :parameters conn :conn db :db}]
+  (let [db (or db @conn)]
+    (if attr
+      (success (get (d/entity db eid) attr))
+      (success (->> (d/entity db eid)
+                    c/touch
+                    (into {}))))))
 
 (defn schema [{:keys [conn]}]
   (success (dd/-schema @conn)))
