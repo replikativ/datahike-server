@@ -19,4 +19,5 @@
   :main datahike-server.core
   :aot [datahike-server.core]
   :repl-options {:init-ns datahike-server.core}
-  :uberjar-name "datahike-server-standalone.jar")
+  :uberjar-name "datahike-server-standalone.jar"
+  :plugins [[lein-cljfmt "0.6.8"]])

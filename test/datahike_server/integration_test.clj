@@ -59,13 +59,11 @@
               :index :datahike.index/hitchhiker-tree}]}
            (api-request :get "/databases")))))
 
-
-
 (deftest db-test
   (testing "Get current database as a hash"
     (is (contains? (api-request :get "/db"
-                            nil
-                            {:headers {:db-name "sessions"}})
+                                nil
+                                {:headers {:db-name "sessions"}})
                    :tx))
     (is (contains? (api-request :get "/db"
                                 nil
@@ -76,42 +74,42 @@
   (testing "Executes a datalog query"
     (is (= "Alice"
            (second (first (api-request :post "/q"
-                                   {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
-                                    :args ["Alice"]}
-                                   {:headers {:db-name "sessions"}})))))))
+                                       {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
+                                        :args ["Alice"]}
+                                       {:headers {:db-name "sessions"}})))))))
 
 (deftest pull-test
-    (testing "Fetches data from database using recursive declarative description."
-        (is (= {:name "Alice"}
-               (api-request :post "/pull"
-                            {:selector '[:name]
-                             :eid 1}
-                            {:headers {:db-name "sessions"}})))))
+  (testing "Fetches data from database using recursive declarative description."
+    (is (= {:name "Alice"}
+           (api-request :post "/pull"
+                        {:selector '[:name]
+                         :eid 1}
+                        {:headers {:db-name "sessions"}})))))
 (deftest pull-many-test
-     (testing "Same as pull, but accepts sequence of ids and returns sequence of maps."
-       (is (= [{:name "Alice"} {:name "Bob"}]
-              (api-request :post "/pull-many"
-                           {:selector '[:name]
-                            :eids '(1 2 3 4)}
-                           {:headers {:db-name "sessions"}})))))
+  (testing "Same as pull, but accepts sequence of ids and returns sequence of maps."
+    (is (= [{:name "Alice"} {:name "Bob"}]
+           (api-request :post "/pull-many"
+                        {:selector '[:name]
+                         :eids '(1 2 3 4)}
+                        {:headers {:db-name "sessions"}})))))
 
 (deftest datoms-test
-    (testing "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
-      (is (= 20
-             (nth (first (api-request :post "/datoms"
-                                  {:index :aevt
-                                   :components [:age]}
-                                  {:headers {:db-name "sessions"}}))
-                  2)))))
-
-#_(deftest seek-datoms-test
-      (testing "Similar to datoms, but will return datoms starting from specified components and including rest of the database until the end of the index."
-        (is (= 20
-               (nth (first (api-request :post "/seek%20datoms"
+  (testing "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
+    (is (= 20
+           (nth (first (api-request :post "/datoms"
                                     {:index :aevt
                                      :components [:age]}
                                     {:headers {:db-name "sessions"}}))
-                    2)))))
+                2)))))
+
+#_(deftest seek-datoms-test
+    (testing "Similar to datoms, but will return datoms starting from specified components and including rest of the database until the end of the index."
+      (is (= 20
+             (nth (first (api-request :post "/seek%20datoms"
+                                      {:index :aevt
+                                       :components [:age]}
+                                      {:headers {:db-name "sessions"}}))
+                  2)))))
 
 (deftest tempid-test
   (testing "Allocates and returns an unique temporary id."
