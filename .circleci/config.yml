@@ -36,6 +36,9 @@ jobs:
           paths:
             - /home/circleci/.m2
             - /home/circleci/.lein
+      - run:
+          name: Setting config file
+          command: mv resources/config.edn.sample resources/config.edn
       - persist_to_workspace:
           root: /home/circleci/
           paths:

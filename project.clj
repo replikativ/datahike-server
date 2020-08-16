@@ -14,6 +14,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [environ "1.2.0"]
                  [mount "0.1.16"]]
+  :profiles {:dev {:dependencies [[clj-http "3.10.1"]]}}
   :source-paths ["src/clj"]
   :main datahike-server.core
   :aot [datahike-server.core]
