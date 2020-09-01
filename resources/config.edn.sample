@@ -10,4 +10,6 @@
               :schema-flexibility :write}]
  :server {:port  3333
           :join? false
-          :loglevel :debug}}
+          :loglevel :info
+          :dev-mode false
+          :token :securerandompassword}}

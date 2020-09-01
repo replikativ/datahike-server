@@ -15,7 +15,7 @@
 (defn -main [& args]
   (mount/start)
   (log/info "Successfully loaded configuration: " (str config))
-  (log/set-level! (get-in config [:server :loglevel]))
+  (log/set-level! (clojure.core/get-in config [:server :loglevel]))
   (log/debugf "Datahike Server Running!"))
 
 (comment

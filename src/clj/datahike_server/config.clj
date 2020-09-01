@@ -14,7 +14,10 @@
 (s/def ::port int?)
 (s/def ::join? boolean?)
 (s/def ::loglevel #{:trace :debug :info :warn :error :fatal :report})
-(s/def ::server-config (s/keys :req-un [::port ::join? ::loglevel]))
+(s/def ::token keyword?)
+(s/def ::dev-mode boolean?)
+(s/def ::server-config (s/keys :req-un [::port ::join? ::loglevel]
+                               :opt-un [::dev-mode ::token]))
 
 (defn load-config-file [config-file]
   (try
@@ -31,16 +34,17 @@
         server-config (merge
                        {:port (int-from-env :datahike-server-port 3000)
                         :join? (bool-from-env :datahike-server-join? false)
-                        :loglevel (keyword (:datahike-server-loglevel env :info))}
+                        :loglevel (keyword (:datahike-server-loglevel env :info))
+                        :dev-mode (bool-from-env :datahike-server-dev-mode false)}
                        (:server config-from-file))
-        validated-server-config (if (s/valid? ::server-config server-config)
-                                  server-config
-                                  (do
-                                    (log/error "Server configuration error:" (s/explain-data ::server-config server-config))
-                                    (log/error "Loading default configuration for server.")
-                                    {:port 3000
-                                     :join? false
-                                     :loglevel :info}))
+        token-config (if-let [token (keyword (:datahike-server-token env))]
+                       (merge
+                        {:token (keyword (:datahike-server-token env))}
+                        server-config)
+                       server-config)
+        validated-server-config (if (s/valid? ::server-config token-config)
+                                  token-config
+                                  (throw (ex-info "Server configuration error:" (s/explain-data ::server-config token-config))))
         datahike-configs (:databases config-from-file)]
     {:server validated-server-config
      :databases datahike-configs}))
