@@ -1,163 +1,43 @@
 version: 2.1
 
-executors:
-  leiningen:
-    docker:
-      - image: circleci/clojure:openjdk-8-lein
-    environment:
-      LEIN_ROOT: nbd
-      JVM_OPTS: -Xmx3200m
-    working_directory: /home/circleci/datahike-server
-
 orbs:
-  docker: circleci/docker@1.3.0
-
-jobs:
-  setup:
-    executor: leiningen
-    steps:
-      - restore_cache:
-          keys:
-            - source-{{ .Branch }}-{{ .Revision }}
-            - source-{{ .Branch }}
-            - source-
-      - checkout
-      - save_cache:
-          key: source-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - .git
-      - restore_cache:
-          keys:
-            - deps-{{ checksum "project.clj" }}
-            - deps-
-      - run: lein deps
-      - save_cache:
-          key: deps-{{ checksum "project.clj" }}
-          paths:
-            - /home/circleci/.m2
-            - /home/circleci/.lein
-      - run:
-          name: Setting config file
-          command: mv resources/config.edn.sample resources/config.edn
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - .m2
-            - datahike-server
-            - bin
-
-  unittest:
-    executor: leiningen
-    steps:
-      - attach_workspace:
-          at: /home/circleci
-      - run:
-          name: Run Unittests
-          command: lein test
-          no_output_timeout: 5m
-
-  format:
-    executor: leiningen
-    steps:
-      - attach_workspace:
-          at: /home/circleci
-      - run:
-          name: Run Cljfmt
-          command: lein cljfmt check
-          no_output_timeout: 5m
-
-  build:
-    executor: leiningen
-    steps:
-      - attach_workspace:
-          at: /home/circleci
-      - run:
-          name: Build
-          command: lein uberjar
-          no_output_timeout: 5m
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - datahike-server/target/datahike-server-standalone.jar
-
-  deploy-snapshot:
-    executor: docker/docker
-    steps:
-      - setup_remote_docker
-      - attach_workspace:
-          at: /home/circleci
-      - docker/check
-      - run:
-          name: Build datahike-server container image
-          command: |
-            cd /home/circleci/datahike-server
-            docker build -t replikativ/datahike-server:snapshot .
-      - run:
-          name: Deploy Snapshot to Docker Hub
-          command: |
-            cd /home/circleci/datahike-server
-            VERSION=$(head -n 1 project.clj | awk '{print $3}' | tr -d \")
-            if [[ ${VERSION} =~ .*-SNAPSHOT ]]; then
-                docker tag replikativ/datahike-server:snapshot replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:snapshot
-            else
-                exit 0
-            fi
-
-  deploy-release:
-    executor: docker/docker
-    steps:
-      - setup_remote_docker
-      - attach_workspace:
-          at: /home/circleci
-      - docker/check
-      - run:
-          name: Build datahike-server container image
-          command: |
-            cd /home/circleci/datahike-server
-            docker build -t replikativ/datahike-server:release .
-      - run:
-          name: Deploy Release to Docker Hub
-          command: |
-            cd /home/circleci/datahike-server
-            VERSION=$(head -n 1 project.clj | awk '{print $3}' | tr -d \")
-            if [[ ${VERSION} =~ .*-SNAPSHOT ]]; then
-                exit 0
-            else
-                docker tag replikativ/datahike-server:release replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:release
-            fi
+  lein: replikativ/clj-lein@0
 
 workflows:
-  build_test_and_deploy:
+  build-test-and-deploy:
     jobs:
-      - setup
-      - unittest:
+      - lein/setup
+      - lein/format:
           requires:
-            - setup
-      - build:
+            - lein/setup
+      - lein/unittest:
           requires:
-            - setup
-      - format:
+            - lein/setup
+      - lein/integrationtest:
           requires:
-            - setup
-      - deploy-snapshot:
+            - lein/setup
+      - lein/build:
+          requires:
+            - lein/setup
+      - lein/deploy-snapshot:
+          context: clojars-deploy
           filters:
             branches:
               only: development
           requires:
-            - setup
-            - format
-            - unittest
-            - build
-      - deploy-release:
+            - lein/setup
+            - lein/format
+            - lein/unittest
+            - lein/integrationtest
+            - lein/build
+      - lein/deploy-release:
+          context: clojars-deploy
           filters:
             branches:
               only: master
           requires:
-            - setup
-            - format
-            - unittest
-            - build
+            - lein/setup
+            - lein/format
+            - lein/unittest
+            - lein/integrationtest
+            - lein/build
