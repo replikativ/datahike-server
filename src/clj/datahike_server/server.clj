@@ -163,9 +163,9 @@
 
 (defn wrap-db-connection [handler]
   (fn [request]
-    (if-let [db-name (clojure.core/get-in request [:headers "db-name"])]
+    (if-let [db-name (get-in request [:headers "db-name"])]
       (if-let [conn (conns db-name)]
-        (if-let [tx (clojure.core/get-in request [:headers "db-tx"])]
+        (if-let [tx (get-in request [:headers "db-tx"])]
           (if-let [db (d/as-of @conn (Integer/parseInt tx))]
             (handler (assoc request :db db :conn conn))
             (handler request))

@@ -11,7 +11,7 @@
    Dev mode always authenticates."
   [handler]
   (fn [request]
-    (let [dev-mode? (clojure.core/get-in dc/config [:server :dev-mode])]
+    (let [dev-mode? (get-in dc/config [:server :dev-mode])]
       (if (or (authenticated? request) dev-mode?)
         (handler request)
         {:status 401 :error "Not authorized"}))))
@@ -21,7 +21,7 @@
    (token-authfn _ token dc/config))
   ([_ token config]
    (let [valid-token? (not (nil? token))
-         correct-auth? (= (clojure.core/get-in config [:server :token])
+         correct-auth? (= (get-in config [:server :token])
                           (keyword token))]
      (when (and correct-auth? valid-token?)
        "authenticated-user"))))

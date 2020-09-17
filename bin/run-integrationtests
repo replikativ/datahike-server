@@ -5,7 +5,7 @@ set -o errexit
 trap teardown EXIT
 
 function setup() {
-    mv resources/config.edn resources/config.edn.tmp | true
+    mv resources/config.edn resources/config.edn.tmp &> /dev/null | true
 }
 
 function test_auth() {
@@ -19,7 +19,7 @@ function test_dev-mode() {
 }
 
 function teardown() {
-    mv resources/config.edn.tmp resources/config.edn | rm resources/config.edn
+    mv resources/config.edn.tmp resources/config.edn &> /dev/null | rm resources/config.edn
 }
 
 setup
