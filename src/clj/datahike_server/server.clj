@@ -179,13 +179,13 @@
 
 (def app
   (-> (ring/ring-handler
-        (ring/router routes route-opts)
-        (ring/routes
-          (swagger-ui/create-swagger-ui-handler
-            {:path   "/"
-             :config {:validatorUrl     nil
-                      :operationsSorter "alpha"}})
-          (ring/create-default-handler)))
+       (ring/router routes route-opts)
+       (ring/routes
+        (swagger-ui/create-swagger-ui-handler
+         {:path   "/"
+          :config {:validatorUrl     nil
+                   :operationsSorter "alpha"}})
+        (ring/create-default-handler)))
       wrap-db-connection
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
                  :access-control-allow-methods [:get :put :post :delete])))
