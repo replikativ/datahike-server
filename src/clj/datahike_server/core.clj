@@ -6,11 +6,17 @@
             [datahike-server.database]
             [datahike-server.server]))
 
+(defn start-all []
+  (mount/start))
+
+(defn stop-all []
+  (mount/stop))
+
 (defn -main [& args]
   (mount/start)
   (log/info "Successfully loaded configuration: " (str config))
   (log/set-level! (get-in config [:server :loglevel]))
-  (log/debugf "Datahike Running!"))
+  (log/debugf "Datahike Server Running!"))
 
 (comment
 

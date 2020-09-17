@@ -1,7 +1,13 @@
-{:datahike {:store {:backend :file
-                    :path "/tmp/dh-2"}
-            :schema-on-read true
-            :temporal-index false}
+{:databases [{:store {:backend :mem
+                      :id "sessions"}
+              :schema-flexibility :read
+              :keep-history? false
+              :name "sessions"}
+             {:store {:backend :file
+                      :path "/tmp/dh-file"}
+              :name "users"
+              :keep-history? true
+              :schema-flexibility :write}]
  :server {:port  3333
           :join? false
           :loglevel :debug}}

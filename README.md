@@ -15,10 +15,10 @@ current directory. This file has a number of options and overwrites all other
 configuration given via environment or properties. Below you can find an example
 to configure both Datahike and the server.
 ```
-{:datahike {:store {:backend :file
-                    :path "/tmp/dh-2"}
-            :schema-on-read true
-            :temporal-index false}
+{:databases [{:store {:backend :file
+                      :path "/tmp/dh-2"}
+             :schema-on-read true
+             :temporal-index false}]
  :server {:port 3000
           :join? false
           :loglevel :debug}}
@@ -56,7 +56,7 @@ severe to most severe:
 
 # License
 
-Copyright © 2020 FIXME
+Copyright © 2020 Konrad Kühne, Timo Kramer
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at

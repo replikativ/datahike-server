@@ -36,6 +36,9 @@ jobs:
           paths:
             - /home/circleci/.m2
             - /home/circleci/.lein
+      - run:
+          name: Setting config file
+          command: mv resources/config.edn.sample resources/config.edn
       - persist_to_workspace:
           root: /home/circleci/
           paths:
@@ -51,6 +54,16 @@ jobs:
       - run:
           name: Run Unittests
           command: lein test
+          no_output_timeout: 5m
+
+  format:
+    executor: leiningen
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - run:
+          name: Run Cljfmt
+          command: lein cljfmt check
           no_output_timeout: 5m
 
   build:
@@ -127,12 +140,16 @@ workflows:
       - build:
           requires:
             - setup
+      - format:
+          requires:
+            - setup
       - deploy-snapshot:
           filters:
             branches:
               only: development
           requires:
             - setup
+            - format
             - unittest
             - build
       - deploy-release:
@@ -141,5 +158,6 @@ workflows:
               only: master
           requires:
             - setup
+            - format
             - unittest
             - build

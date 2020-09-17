@@ -27,3 +27,6 @@ resources/public/js
 .DS_Store
 
 datahike-server.iml
+
+/.store
+resources/config.edn

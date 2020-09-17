@@ -1,56 +1,66 @@
 (ns datahike-server.handlers
-  (:require [datahike-server.database :refer [conn]]
+  (:require [datahike-server.database :refer [conns]]
             [datahike.api :as d]
             [datahike.db :as dd]
             [datahike.core :as c]))
 
-(defn success [data]
-  {:status 200
-   :body data})
+(defn success
+  ([data] {:status 200 :body data})
+  ([] {:status 200}))
 
-(defn connect [])
+(defn list-databases [_]
+  (let [xf (comp
+            (map deref)
+            (map :config))
+        databases (into [] xf (-> conns vals))]
+    (success {:databases databases})))
 
-(defn create-database [config]
-  ()
-  (d/create-database config))
+(defn get-db [{:keys [conn]}]
+  (success {:tx (dd/-max-tx @conn)}))
 
-(defn delete-database [config])
+(defn cleanup-result [result]
+  (-> result
+      (dissoc :db-after :db-before)
+      (update :tx-data #(mapv (comp vec seq) %))
+      (update :tx-meta #(mapv (comp vec seq) %))))
 
-(defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters}]
+(defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters conn :conn}]
   (let [result (d/transact conn {:tx-data tx-data
                                  :tx-meta tx-meta})]
+
     (-> result
-        (dissoc :db-after :db-before)
-        (update :tx-data #(mapv (comp vec seq) %))
-        (update :tx-meta #(mapv (comp vec seq) %))
+        cleanup-result
         success)))
 
-(defn q [{{:keys [body]} :parameters}]
+(defn q [{{:keys [body]} :parameters conn :conn db :db}]
   (success (into []
                  (d/q {:query (:query body [])
-                      :args (concat [@conn] (:args body []))
-                      :limit (:limit body -1)
-                      :offset (:offset body 0)}))))
+                       :args (concat [(or db @conn)] (:args body []))
+                       :limit (:limit body -1)
+                       :offset (:offset body 0)}))))
 
-(defn pull [{{{:keys [selector eid]} :body} :parameters}]
-  (success (d/pull @conn selector eid)))
+(defn pull [{{{:keys [selector eid]} :body} :parameters conn :conn db :db}]
+  (success (d/pull (or db @conn) selector eid)))
 
-(defn pull-many [{{{:keys [selector eids]} :body} :parameters}]
-  (success (vec (d/pull-many @conn selector eids))))
+(defn pull-many [{{{:keys [selector eids]} :body} :parameters conn :conn db :db}]
+  (success (vec (d/pull-many (or db @conn) selector eids))))
 
-(defn datoms [{{{:keys [index components]} :body} :parameters}]
-  (success (mapv (comp vec seq) (apply d/datoms (into [@conn index] components)))))
+(defn datoms [{{{:keys [index components]} :body} :parameters conn :conn db :db}]
+  (success (mapv (comp vec seq) (apply d/datoms (into [(or db @conn) index] components)))))
 
-(defn seek-datoms [{{{:keys [index components]} :body} :parameters}]
-  (success (mapv (comp vec seq) (apply d/seek-datoms (into [@conn index] components)))))
+(defn seek-datoms [{{{:keys [index components]} :body} :parameters conn :conn db :db}]
+  (success (mapv (comp vec seq) (apply d/seek-datoms (into [(or db @conn) index] components)))))
 
 (defn tempid [_]
   (success {:tempid (d/tempid :db.part/db)}))
 
-(defn entity [{{{:keys [eid]} :body} :parameters}]
-  (success (->> (d/entity @conn eid)
-                c/touch
-                (into {}))))
+(defn entity [{{{:keys [eid attr]} :body} :parameters conn :conn db :db}]
+  (let [db (or db @conn)]
+    (if attr
+      (success (get (d/entity db eid) attr))
+      (success (->> (d/entity db eid)
+                    c/touch
+                    (into {}))))))
 
-(defn schema [_]
+(defn schema [{:keys [conn]}]
   (success (dd/-schema @conn)))

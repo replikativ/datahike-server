@@ -41,9 +41,9 @@
                                     {:port 3000
                                      :join? false
                                      :loglevel :info}))
-        datahike-config (:datahike config-from-file)]
+        datahike-configs (:databases config-from-file)]
     {:server validated-server-config
-     :datahike datahike-config}))
+     :databases datahike-configs}))
 
 (defstate config
   :start (do
