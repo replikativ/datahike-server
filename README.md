@@ -7,6 +7,12 @@ Datahike with the backend of your choice and run it in a container or on a VM.
 Push the button to deploy Datahike as a Container Instance on MS Azure with
 a file backend.
 
+## Run Datahike Server
+
+Run Datahike Server in dev-mode without any authentication:
+
+`DATAHIKE_SERVER_DEV_MODE=true java -jar datahike-server-standalone.jar`
+
 ## Configuring Datahike Server
 ### File Configuration
 
@@ -21,6 +27,8 @@ to configure both Datahike and the server.
              :temporal-index false}]
  :server {:port 3000
           :join? false
+          :dev-mode false
+          :token :yourtoken
           :loglevel :debug}}
 ```
 
@@ -39,6 +47,17 @@ properties                  | envvar                   | default
 datahike.server.port        | DATAHIKE_SERVER_PORT     | 3000
 datahike.server.join        | DATAHIKE_SERVER_JOIN     | false
 datahike.server.loglevel    | DATAHIKE_SERVER_LOGLEVEL | :info
+datahike.server.dev.mode    | DATAHIKE_SERVER_DEV_MODE | false
+datahike.server.token       | DATAHIKE_SERVER_TOKEN    | no default
+
+### Authentication
+
+You can authenticate to Datahike-Server with a token specified via configuration. Please
+then send the token within your request headers as `authentication: token <yourtoken>`.
+If you don't want to use authentication during development you can set dev-mode to true
+in your configuration and just omit the authentication-header. Please be aware that your
+Datahike Server might be running publicly accessible and then your data might be read
+by anyone and the server might be misused if no authentication is active.
 
 ### Logging
 

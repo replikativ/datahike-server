@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -o errexit
+
+trap teardown EXIT
+
+function setup() {
+    mv resources/config.edn resources/config.edn.tmp &> /dev/null | true
+}
+
+function test_auth() {
+    cp -av test/datahike_server/resources/config.edn resources/config.edn
+    lein test :only datahike-server.integration-test
+}
+
+function test_dev-mode() {
+    cp -av test/datahike_server/resources/config-dev-mode.edn resources/config.edn
+    lein test :only datahike-server.integration-test-dev-mode
+}
+
+function teardown() {
+    mv resources/config.edn.tmp resources/config.edn &> /dev/null | rm resources/config.edn
+}
+
+setup
+test_auth
+test_dev-mode

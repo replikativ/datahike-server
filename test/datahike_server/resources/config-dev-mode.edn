@@ -13,4 +13,4 @@
  :server {:port  3333
           :join? false
           :loglevel :debug
-          :token :neverusethisaspassword}}
+          :dev-mode true}}

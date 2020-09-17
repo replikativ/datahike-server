@@ -1,4 +1,4 @@
-(ns datahike-server.integration-test
+(ns datahike-server.integration-test-dev-mode
   (:require [clojure.test :refer :all]
             [clojure.edn :as edn]
             [clj-http.client :as client]
@@ -37,8 +37,7 @@
             :description "Transaction and search functions"}
            (:info (api-request :get
                                "/swagger.json"
-                               nil
-                               {:headers {:authorization "token neverusethisaspassword"}}))))))
+                               nil))))))
 
 (deftest databases-test
   (testing "Get Databases"
@@ -56,20 +55,17 @@
               :name "users",
               :index :datahike.index/hitchhiker-tree}]}
            (api-request :get "/databases"
-                        nil
-                        {:headers {:authorization "token neverusethisaspassword"}})))))
+                        nil)))))
 
 (deftest db-test
   (testing "Get current database as a hash"
     (is (contains? (api-request :get "/db"
                                 nil
-                                {:headers {:authorization "token neverusethisaspassword"
-                                           :db-name "sessions"}})
+                                {:headers {:db-name "sessions"}})
                    :tx))
     (is (contains? (api-request :get "/db"
                                 nil
-                                {:headers {:authorization "token neverusethisaspassword"
-                                           :db-name "users"}})
+                                {:headers {:db-name "users"}})
                    :tx))))
 
 (deftest q-test
@@ -78,8 +74,7 @@
            (second (first (api-request :post "/q"
                                        {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
                                         :args ["Alice"]}
-                                       {:headers {:authorization "token neverusethisaspassword"
-                                                  :db-name "sessions"}})))))))
+                                       {:headers {:db-name "sessions"}})))))))
 
 (deftest pull-test
   (testing "Fetches data from database using recursive declarative description."
@@ -87,16 +82,14 @@
            (api-request :post "/pull"
                         {:selector '[:name]
                          :eid 1}
-                        {:headers {:authorization "token neverusethisaspassword"
-                                   :db-name "sessions"}})))))
+                        {:headers {:db-name "sessions"}})))))
 (deftest pull-many-test
   (testing "Same as pull, but accepts sequence of ids and returns sequence of maps."
     (is (= [{:name "Alice"} {:name "Bob"}]
            (api-request :post "/pull-many"
                         {:selector '[:name]
                          :eids '(1 2 3 4)}
-                        {:headers {:authorization "token neverusethisaspassword"
-                                   :db-name "sessions"}})))))
+                        {:headers {:db-name "sessions"}})))))
 
 (deftest datoms-test
   (testing "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
@@ -104,8 +97,7 @@
            (nth (first (api-request :post "/datoms"
                                     {:index :aevt
                                      :components [:age]}
-                                    {:headers {:authorization "token neverusethisaspassword"
-                                               :db-name "sessions"}}))
+                                    {:headers {:db-name "sessions"}}))
                 2)))))
 
 #_(deftest seek-datoms-test
@@ -122,21 +114,18 @@
     (is (= {:tempid -1000001}
            (api-request :get "/tempid"
                         {}
-                        {:headers {:authorization "token neverusethisaspassword"
-                                   :db-name "sessions"}})))))
+                        {:headers {:db-name "sessions"}})))))
 
 (deftest entity-test
   (testing "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
     (is (= {:age 21 :name "Bob"}
            (api-request :post "/entity"
                         {:eid 2}
-                        {:headers {:authorization "token neverusethisaspassword"
-                                   :db-name "sessions"}})))))
+                        {:headers {:db-name "sessions"}})))))
 
 (deftest schema-test
   (testing "Fetches current schema"
     (is (= #:db{:ident #:db{:unique :db.unique/identity}}
            (api-request :get "/schema"
                         {}
-                        {:headers {:authorization "token neverusethisaspassword"
-                                   :db-name "sessions"}})))))
+                        {:headers {:db-name "sessions"}})))))

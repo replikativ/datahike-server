@@ -1,5 +1,10 @@
 (ns datahike-server.server
-  (:require [reitit.ring :as ring]
+  (:require [datahike-server.handlers :as h]
+            [datahike-server.config :refer [config]]
+            [datahike-server.database :refer [conns]]
+            [datahike-server.middleware :as middleware]
+            [datahike.api :as d]
+            [reitit.ring :as ring]
             [reitit.coercion.spec]
             [reitit.swagger :as swagger]
             [reitit.swagger-ui :as swagger-ui]
@@ -9,17 +14,14 @@
             [reitit.ring.middleware.exception :as exception]
             [reitit.ring.middleware.multipart :as multipart]
             [reitit.ring.middleware.parameters :as parameters]
+            [reitit.ring.middleware.dev :as dev]
             [ring.middleware.cors :refer [wrap-cors]]
             [muuntaja.core :as m]
             [clojure.spec.alpha :as s]
-            [datahike-server.handlers :as h]
-            [datahike-server.config :refer [config]]
-            [datahike-server.database :refer [conns]]
             [taoensso.timbre :as log]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [clojure.pprint :refer [pprint]]
-            [datahike.api :as d]))
+            [clojure.pprint :refer [pprint]]))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
@@ -68,6 +70,7 @@
    ["/databases"
     {:swagger {:tags ["database" "API"]}
      :get     {:summary "List available databases."
+               :middleware [middleware/token-auth middleware/auth]
                :handler h/list-databases}}]
 
    ["/echo"
@@ -91,12 +94,14 @@
      :post    {:summary    "Applies transaction to the underlying database value."
                :parameters {:body   ::transactions
                             :header ::conn-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/transact}}]
 
    ["/db"
     {:swagger {:tags ["database" "API"]}
      :get     {:summary    "Get current database as a hash."
                :parameters {:header ::conn-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/get-db}}]
 
    ["/q"
@@ -104,48 +109,56 @@
      :post    {:summary    "Executes a datalog query."
                :parameters {:body   ::query-request
                             :header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/q}}]
 
    ["/pull"
     {:swagger {:tags ["search" "API"]}
      :post    {:summary    "Fetches data from database using recursive declarative description."
                :parameters {:body ::pull-request :header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/pull}}]
 
    ["/pull-many"
     {:swagger {:tags ["search" "API"]}
      :post    {:summary    "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
                :parameters {:body ::pull-many-request :header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/pull-many}}]
 
    ["/datoms"
     {:swagger {:tags ["search" "API"]}
      :post    {:summary    "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
                :parameters {:body ::datoms-request :header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/datoms}}]
 
    ["/seek datoms"
     {:swagger {:tags ["search" "API"]}
      :post    {:summary    "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
                :parameters {:body ::datoms-request :header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/seek-datoms}}]
 
    ["/tempid"
     {:swagger {:tags ["utils" "API"]}
      :get     {:summary    "Allocates and returns an unique temporary id."
                :parameters {:header ::conn-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/tempid}}]
 
    ["/entity"
     {:swagger {:tags ["search" "API"]}
      :post    {:summary    "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
                :parameters {:body ::entity-request :header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/entity}}]
 
    ["/schema"
     {:swagger {:tags ["utils"]}
      :get     {:summary    "Fetches current schema"
                :parameters {:header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
                :handler    h/schema}}]])
 
 (defn wrap-db-connection [handler]
