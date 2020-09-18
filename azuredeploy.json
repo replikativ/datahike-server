@@ -13,7 +13,7 @@
       "metadata": {
         "description": "Container image to deploy. Should be of the form accountName/imagename[:tag] for images stored in Docker Hub or a fully qualified URI for a private registry like the Azure Container Registry."
       },
-      "defaultValue": "mopedtobias/datahike-server:latest"
+      "defaultValue": "replikativ/datahike-server:latest"
     },
     "environmentVariables": {
       "type": "array",
