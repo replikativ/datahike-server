@@ -2,6 +2,70 @@ version: 2.1
 
 orbs:
   lein: replikativ/clj-lein@0
+  docker: circleci/docker@1
+
+jobs:
+  build:
+    executor: lein/leiningen
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - run:
+          name: Build
+          command: lein uberjar
+          no_output_timeout: 5m
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths:
+            - replikativ/target/datahike-server-standalone.jar
+  deploy-snapshot:
+    executor: docker/docker
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+          at: /home/circleci
+      - docker/check
+      - run:
+          name: Build datahike-server container image
+          command: |
+            cd /home/circleci/replikativ
+            docker build -t replikativ/datahike-server:snapshot .
+      - run:
+          name: Deploy Snapshot to Docker Hub
+          command: |
+            cd /home/circleci/replikativ
+            VERSION=$(head -n 1 project.clj | awk '{print $3}' | tr -d \")
+            if [[ ${VERSION} =~ .*-SNAPSHOT ]]; then
+                docker tag replikativ/datahike-server:snapshot replikativ/datahike-server:${VERSION}
+                docker push replikativ/datahike-server:${VERSION}
+                docker push replikativ/datahike-server:snapshot
+            else
+                exit 0
+            fi
+  deploy-release:
+    executor: docker/docker
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+          at: /home/circleci
+      - docker/check
+      - run:
+          name: Build datahike-server container image
+          command: |
+            cd /home/circleci/replikativ
+            docker build -t replikativ/datahike-server:release .
+      - run:
+          name: Deploy Release to Docker Hub
+          command: |
+            cd /home/circleci/replikativ
+            VERSION=$(head -n 1 project.clj | awk '{print $3}' | tr -d \")
+            if [[ ${VERSION} =~ .*-SNAPSHOT ]]; then
+                exit 0
+            else
+                docker tag replikativ/datahike-server:release replikativ/datahike-server:${VERSION}
+                docker push replikativ/datahike-server:${VERSION}
+                docker push replikativ/datahike-server:release
+            fi
 
 workflows:
   build-test-and-deploy:
@@ -16,28 +80,26 @@ workflows:
       - lein/integrationtest:
           requires:
             - lein/setup
-      - lein/build:
+      - build:
           requires:
             - lein/setup
-      - lein/deploy-snapshot:
-          context: clojars-deploy
+      - deploy-snapshot:
+          context: dockerhub-deploy
           filters:
             branches:
               only: development
           requires:
             - lein/setup
             - lein/format
-            - lein/unittest
             - lein/integrationtest
-            - lein/build
-      - lein/deploy-release:
-          context: clojars-deploy
+            - build
+      - deploy-release:
+          context: dockerhub-deploy
           filters:
             branches:
               only: master
           requires:
             - lein/setup
             - lein/format
-            - lein/unittest
             - lein/integrationtest
-            - lein/build
+            - build

@@ -1,4 +1,4 @@
-FROM openjdk:14-alpine
+FROM openjdk:15-alpine
 
 RUN mkdir -p /opt/datahike-server
 WORKDIR /opt/datahike-server
