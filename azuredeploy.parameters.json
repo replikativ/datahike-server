@@ -6,7 +6,7 @@
       "value": "datahike-server"
     },
     "image": {
-      "value": "mopedtobias/datahike-server:latest"
+      "value": "replikativ/datahike-server:snapshot"
     },
     "port": {
       "value": "3000"
