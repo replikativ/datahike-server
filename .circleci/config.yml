@@ -21,7 +21,8 @@ jobs:
   deploy-snapshot:
     executor: docker/docker
     steps:
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.13
       - attach_workspace:
           at: /home/circleci
       - docker/check
@@ -45,7 +46,8 @@ jobs:
   deploy-release:
     executor: docker/docker
     steps:
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.13
       - attach_workspace:
           at: /home/circleci
       - docker/check
