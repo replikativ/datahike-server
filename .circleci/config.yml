@@ -21,8 +21,7 @@ jobs:
   deploy-snapshot:
     executor: docker/docker
     steps:
-      - setup_remote_docker:
-          version: 19.03.13
+      - setup_remote_docker
       - attach_workspace:
           at: /home/circleci
       - docker/check
@@ -46,8 +45,7 @@ jobs:
   deploy-release:
     executor: docker/docker
     steps:
-      - setup_remote_docker:
-          version: 19.03.13
+      - setup_remote_docker
       - attach_workspace:
           at: /home/circleci
       - docker/check
@@ -68,21 +66,25 @@ jobs:
                 docker push replikativ/datahike-server:${VERSION}
                 docker push replikativ/datahike-server:release
             fi
-
 workflows:
   build-test-and-deploy:
     jobs:
-      - lein/setup
+      - lein/setup:
+          context: dockerhub-deploy      
       - lein/format:
+          context: dockerhub-deploy      
           requires:
             - lein/setup
       - lein/unittest:
+          context: dockerhub-deploy      
           requires:
             - lein/setup
       - lein/integrationtest:
+          context: dockerhub-deploy      
           requires:
             - lein/setup
       - build:
+          context: dockerhub-deploy      
           requires:
             - lein/setup
       - deploy-snapshot:
@@ -96,7 +98,9 @@ workflows:
             - lein/integrationtest
             - build
       - deploy-release:
-          context: dockerhub-deploy
+          context: 
+            - clojars-deploy
+            - dockerhub-deploy
           filters:
             branches:
               only: master
