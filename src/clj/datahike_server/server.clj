@@ -133,7 +133,7 @@
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/datoms}}]
 
-   ["/seek datoms"
+   ["/seek-datoms"
     {:swagger {:tags ["search" "API"]}
      :post    {:summary    "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
                :parameters {:body ::datoms-request :header ::db-header}

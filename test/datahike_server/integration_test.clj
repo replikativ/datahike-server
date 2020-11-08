@@ -111,7 +111,7 @@
 #_(deftest seek-datoms-test
     (testing "Similar to datoms, but will return datoms starting from specified components and including rest of the database until the end of the index."
       (is (= 20
-             (nth (first (api-request :post "/seek%20datoms"
+             (nth (first (api-request :post "/seek-datoms"
                                       {:index :aevt
                                        :components [:age]}
                                       {:headers {:db-name "sessions"}}))
