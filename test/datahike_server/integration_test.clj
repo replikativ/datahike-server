@@ -59,6 +59,14 @@
                         nil
                         {:headers {:authorization "token neverusethisaspassword"}})))))
 
+(deftest transact-test
+  (testing "Transact values"
+    (is (= {:tx-data [[3 :foo 1 536870914 true]], :tempids #:db{:current-tx 536870914}, :tx-meta []}
+           (api-request :post "/transact"
+                        {:tx-data [{:foo 1}]}
+                        {:headers {:authorization "token neverusethisaspassword"
+                                   :db-name "sessions"}})))))
+
 (deftest db-test
   (testing "Get current database as a hash"
     (is (contains? (api-request :get "/db"
@@ -108,14 +116,15 @@
                                                :db-name "sessions"}}))
                 2)))))
 
-#_(deftest seek-datoms-test
-    (testing "Similar to datoms, but will return datoms starting from specified components and including rest of the database until the end of the index."
-      (is (= 20
-             (nth (first (api-request :post "/seek-datoms"
-                                      {:index :aevt
-                                       :components [:age]}
-                                      {:headers {:db-name "sessions"}}))
-                  2)))))
+(deftest seek-datoms-test
+  (testing "Similar to datoms, but will return datoms starting from specified components and including rest of the database until the end of the index."
+    (is (= 20
+           (nth (first (api-request :post "/seek-datoms"
+                                    {:index :aevt
+                                     :components [:age]}
+                                    {:headers {:authorization "token neverusethisaspassword"
+                                               :db-name "sessions"}}))
+                2)))))
 
 (deftest tempid-test
   (testing "Allocates and returns an unique temporary id."
@@ -135,7 +144,7 @@
 
 (deftest schema-test
   (testing "Fetches current schema"
-    (is (= #:db{:ident #:db{:unique :db.unique/identity}}
+    (is (= #:db{:ident #:db{:unique :db.unique/identity}, :db.entity/attrs #:db{:cardinality :db.cardinality/many}, :db.entity/preds #:db{:cardinality :db.cardinality/many}}
            (api-request :get "/schema"
                         {}
                         {:headers {:authorization "token neverusethisaspassword"
