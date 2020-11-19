@@ -21,7 +21,25 @@
             [taoensso.timbre :as log]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]]
+            [iapetos.core :as prometheus]
+            [iapetos.export :as export]))
+
+(defonce registry
+ (-> (prometheus/collector-registry)
+     (prometheus/register
+       (prometheus/histogram :app/duration-seconds)
+       (prometheus/gauge     :app/active-users-total)
+       (prometheus/counter   :app/runs-total))
+     (prometheus/register-lazy
+       (prometheus/gauge     :app/last-success-unixtime))))
+
+(-> registry
+    (prometheus/inc     :app/runs-total)
+    (prometheus/observe :app/duration-seconds 0.7)
+    (prometheus/set     :app/active-users-total 22))
+
+(print (export/text-format registry))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
