@@ -8,7 +8,7 @@
                  [buddy/buddy-auth "2.2.0"]
                  [ring/ring-core "1.6.3"]
                  [ring/ring-jetty-adapter "1.6.3"]
-                 [metosin/reitit "0.4.2"]
+                 [metosin/reitit "0.5.10"]
                  [ring-cors "0.1.13"]
                  [com.taoensso/timbre "4.10.0"]
                  [environ "1.2.0"]
