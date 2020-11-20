@@ -23,23 +23,8 @@
             [ring.adapter.jetty :refer [run-jetty]]
             [clojure.pprint :refer [pprint]]
             [iapetos.core :as prometheus]
-            [iapetos.export :as export]))
-
-(defonce registry
- (-> (prometheus/collector-registry)
-     (prometheus/register
-       (prometheus/histogram :app/duration-seconds)
-       (prometheus/gauge     :app/active-users-total)
-       (prometheus/counter   :app/runs-total))
-     (prometheus/register-lazy
-       (prometheus/gauge     :app/last-success-unixtime))))
-
-(-> registry
-    (prometheus/inc     :app/runs-total)
-    (prometheus/observe :app/duration-seconds 0.7)
-    (prometheus/set     :app/active-users-total 22))
-
-(print (export/text-format registry))
+            [iapetos.export :as export]
+            [iapetos.collector.ring :as cring]))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
@@ -179,6 +164,19 @@
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/schema}}]])
 
+(defonce registry
+ (-> (prometheus/collector-registry)
+     (prometheus/register
+       (prometheus/histogram :app/duration-seconds)
+       (prometheus/gauge     :app/active-users-total)
+       (prometheus/counter   :app/runs-total))
+     (cring/initialize)))
+
+(-> registry
+    (prometheus/inc     :app/runs-total)
+    (prometheus/observe :app/duration-seconds 0.7)
+    (prometheus/set     :app/active-users-total 22))
+
 (defn wrap-db-connection [handler]
   (fn [request]
     (if-let [db-name (get-in request [:headers "db-name"])]
@@ -219,7 +217,8 @@
         (ring/create-default-handler)))
       wrap-db-connection
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
-                 :access-control-allow-methods [:get :put :post :delete])))
+                 :access-control-allow-methods [:get :put :post :delete])
+      (cring/wrap-metrics registry {:path "/metrics"})))
 
 (defn start-server [config]
   (run-jetty app (:server config)))
