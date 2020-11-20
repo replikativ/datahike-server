@@ -68,95 +68,109 @@
            :handler (swagger/create-swagger-handler)}}]
 
    ["/databases"
-    {:swagger {:tags ["database" "API"]}
-     :get     {:summary "List available databases."
+    {:swagger {:tags ["API"]}
+     :get     {:operationId "ListDatabases"
+               :summary "List available databases."
                :middleware [middleware/token-auth middleware/auth]
                :handler h/list-databases}}]
 
    ["/echo"
-    {:get  {:summary "For testing purposes only."
+    {:get  {:operationId "EchoGET"
+            :summary "For testing purposes only."
             :handler (fn [request]
                        (pprint request)
                        {:status 200})}
-     :post {:parameters {:body map?}
+     :post {:operationId "EchoPOST"
+            :parameters {:body map?}
             :handler    (fn [request]
                           (pprint request)
                           {:status 200})}}]
 
    ["/echo/:id"
-    {:get {:summary "For testing purposes only."
+    {:get {:operationId "EchoId"
+           :summary "For testing purposes only."
            :handler (fn [request]
                       (pprint request)
                       {:status 200})}}]
 
    ["/transact"
-    {:swagger {:tags ["transact" "API"]}
-     :post    {:summary    "Applies transaction to the underlying database value."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "Transact"
+               :summary "Applies transaction to the underlying database value."
                :parameters {:body   ::transactions
                             :header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/transact}}]
 
    ["/db"
-    {:swagger {:tags ["database" "API"]}
-     :get     {:summary    "Get current database as a hash."
+    {:swagger {:tags ["API"]}
+     :get     {:operationId "DatabaseHash"
+               :summary "Get current database as a hash."
                :parameters {:header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/get-db}}]
 
    ["/q"
-    {:swagger {:tags ["search" "API"]}
-     :post    {:summary    "Executes a datalog query."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "Query"
+               :summary    "Executes a datalog query."
                :parameters {:body   ::query-request
                             :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/q}}]
 
    ["/pull"
-    {:swagger {:tags ["search" "API"]}
-     :post    {:summary    "Fetches data from database using recursive declarative description."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "Pull"
+               :summary    "Fetches data from database using recursive declarative description."
                :parameters {:body ::pull-request :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/pull}}]
 
    ["/pull-many"
-    {:swagger {:tags ["search" "API"]}
-     :post    {:summary    "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "PullMany"
+               :summary    "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
                :parameters {:body ::pull-many-request :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/pull-many}}]
 
    ["/datoms"
-    {:swagger {:tags ["search" "API"]}
-     :post    {:summary    "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "Datoms"
+               :summary    "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
                :parameters {:body ::datoms-request :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/datoms}}]
 
    ["/seek-datoms"
-    {:swagger {:tags ["search" "API"]}
-     :post    {:summary    "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "SeekDatoms"
+               :summary    "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
                :parameters {:body ::datoms-request :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/seek-datoms}}]
 
    ["/tempid"
-    {:swagger {:tags ["utils" "API"]}
-     :get     {:summary    "Allocates and returns an unique temporary id."
+    {:swagger {:tags ["API"]}
+     :get     {:operationId "TempID"
+               :summary    "Allocates and returns an unique temporary id."
                :parameters {:header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/tempid}}]
 
    ["/entity"
-    {:swagger {:tags ["search" "API"]}
-     :post    {:summary    "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
+    {:swagger {:tags ["API"]}
+     :post    {:operationId "Entity"
+               :summary    "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
                :parameters {:body ::entity-request :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/entity}}]
 
    ["/schema"
-    {:swagger {:tags ["utils"]}
-     :get     {:summary    "Fetches current schema"
+    {:swagger {:tags ["API"]}
+     :get     {:operationId "Schema"
+               :summary    "Fetches current schema"
                :parameters {:header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/schema}}]])
