@@ -21,7 +21,8 @@
             [taoensso.timbre :as log]
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]]
+            [spec-tools.core :as st]))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
@@ -59,6 +60,7 @@
 (s/def ::db-tx int?)
 (s/def ::db-header (s/keys :req-un [::db-name]
                            :opt-un [::db-tx]))
+(s/def ::params map?)
 
 (def routes
   [["/swagger.json"
@@ -81,10 +83,11 @@
                        (pprint request)
                        {:status 200})}
      :post {:operationId "EchoPOST"
-            :parameters {:body map?}
+            :parameters {:body (st/spec {:spec ::params
+                                         :name "arbitrary-params"})}
             :handler    (fn [request]
-                          (pprint request)
-                          {:status 200})}}]
+                          ;(pprint request)
+                          {:status 200 :body (:parameters request)})}}]
 
    ["/echo/:id"
     {:get {:operationId "EchoId"
@@ -97,7 +100,8 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "Transact"
                :summary "Applies transaction to the underlying database value."
-               :parameters {:body   ::transactions
+               :parameters {:body   (st/spec {:spec ::transactions
+                                              :name "transactions"})
                             :header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/transact}}]
@@ -114,7 +118,8 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "Query"
                :summary    "Executes a datalog query."
-               :parameters {:body   ::query-request
+               :parameters {:body   (st/spec {:spec ::query-request
+                                              :name "query"})
                             :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/q}}]
@@ -123,7 +128,9 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "Pull"
                :summary    "Fetches data from database using recursive declarative description."
-               :parameters {:body ::pull-request :header ::db-header}
+               :parameters {:body (st/spec {:spec ::pull-request
+                                            :name "pull"})
+                            :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/pull}}]
 
@@ -131,7 +138,9 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "PullMany"
                :summary    "Same as [[pull]], but accepts sequence of ids and returns sequence of maps."
-               :parameters {:body ::pull-many-request :header ::db-header}
+               :parameters {:body (st/spec {:spec ::pull-many-request
+                                            :name "pull-many"})
+                            :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/pull-many}}]
 
@@ -139,7 +148,9 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "Datoms"
                :summary    "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
-               :parameters {:body ::datoms-request :header ::db-header}
+               :parameters {:body (st/spec {:spec ::datoms-request
+                                            :name "datoms"})
+                            :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/datoms}}]
 
@@ -147,7 +158,9 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "SeekDatoms"
                :summary    "Similar to [[datoms]], but will return datoms starting from specified components and including rest of the database until the end of the index."
-               :parameters {:body ::datoms-request :header ::db-header}
+               :parameters {:body (st/spec {:spec ::datoms-request
+                                            :name "seek-datoms"})
+                            :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/seek-datoms}}]
 
@@ -163,7 +176,9 @@
     {:swagger {:tags ["API"]}
      :post    {:operationId "Entity"
                :summary    "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
-               :parameters {:body ::entity-request :header ::db-header}
+               :parameters {:body (st/spec {:spec ::entity-request
+                                            :name "entity"})
+                            :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/entity}}]
 
@@ -188,7 +203,7 @@
       (handler request))))
 
 (def route-opts
-  {;;:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
+  {:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
    ;; :validate spec/validate ;; enable spec validation for route data
    ;;:reitit.spec/wrap spell/closed ;; strict top-level validation
    :exception pretty/exception
