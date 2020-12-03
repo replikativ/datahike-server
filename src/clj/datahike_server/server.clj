@@ -62,6 +62,13 @@
 (s/def ::db-tx int?)
 (s/def ::db-header (s/keys :req-un [::db-name]
                            :opt-un [::db-tx]))
+(defonce registry
+ (-> (prometheus/collector-registry)
+     (prometheus/register
+       (prometheus/histogram :app/duration-seconds)
+       (prometheus/gauge     :app/active-users-total)
+       (prometheus/counter   :app/query-total))
+     (cring/initialize)))
 
 (def routes
   [["/swagger.json"
@@ -113,7 +120,9 @@
                :parameters {:body   ::query-request
                             :header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
-               :handler    h/q}}]
+               :handler    (fn [req] 
+               															(prometheus/inc registry :app/query-total)
+               															(h/q req))}}]
 
    ["/pull"
     {:swagger {:tags ["search" "API"]}
@@ -163,19 +172,6 @@
                :parameters {:header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/schema}}]])
-
-(defonce registry
- (-> (prometheus/collector-registry)
-     (prometheus/register
-       (prometheus/histogram :app/duration-seconds)
-       (prometheus/gauge     :app/active-users-total)
-       (prometheus/counter   :app/runs-total))
-     (cring/initialize)))
-
-(-> registry
-    (prometheus/inc     :app/runs-total)
-    (prometheus/observe :app/duration-seconds 0.7)
-    (prometheus/set     :app/active-users-total 22))
 
 (defn wrap-db-connection [handler]
   (fn [request]

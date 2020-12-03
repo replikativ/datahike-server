@@ -2,6 +2,7 @@
   (:require [datahike-server.database :refer [conns]]
             [datahike.api :as d]
             [datahike.db :as dd]
+            [iapetos.core :as prometheus]
             [datahike.core :as c]))
 
 (defn success
