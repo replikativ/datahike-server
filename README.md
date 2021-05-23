@@ -61,7 +61,7 @@ by anyone and the server might be misused if no authentication is active.
 
 ### Logging
 
-We are using the [library taoensso.timbre by Peter Taoussanis]() to provide
+We are using the [library taoensso.timbre by Peter Taoussanis](https://github.com/ptaoussanis/timbre/) to provide
 meaningful log messages. Please set the loglevel that you prefer via means
 of configuration below. The possible levels are sorted in order from least
 severe to most severe:
@@ -72,6 +72,23 @@ severe to most severe:
 - error
 - fatal
 - report
+
+# Roadmap
+
+## Release 0.1.0
+- [ ] JSON support #18
+- [x] Token authentication
+- [ ] Implement db-tx #25
+- [ ] Improve documentation #23
+- [ ] Improve error messages #24
+- [ ] [Clojure client](https://github.com/replikativ/datahike-client/)
+- [ ] [Clojurescript client](https://github.com/replikativ/datahike-client/)
+
+## Release 0.2.0
+- [ ] Import/Export/Backup
+- [ ] Metrics
+- [ ] Subscribe to transactions
+- [ ] Implement query engine in client
 
 # License
 
