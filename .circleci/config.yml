@@ -70,21 +70,21 @@ workflows:
   build-test-and-deploy:
     jobs:
       - lein/setup:
-          context: dockerhub-deploy      
+          context: dockerhub-deploy
       - lein/format:
-          context: dockerhub-deploy      
+          context: dockerhub-deploy
           requires:
             - lein/setup
       - lein/unittest:
-          context: dockerhub-deploy      
+          context: dockerhub-deploy
           requires:
             - lein/setup
       - lein/integrationtest:
-          context: dockerhub-deploy      
+          context: dockerhub-deploy
           requires:
             - lein/setup
       - build:
-          context: dockerhub-deploy      
+          context: dockerhub-deploy
           requires:
             - lein/setup
       - deploy-snapshot:
@@ -98,7 +98,7 @@ workflows:
             - lein/integrationtest
             - build
       - deploy-release:
-          context: 
+          context:
             - clojars-deploy
             - dockerhub-deploy
           filters:

@@ -1,9 +1,7 @@
-FROM openjdk:16-alpine
+FROM gcr.io/distroless/java:11
 
-RUN mkdir -p /opt/datahike-server
-WORKDIR /opt/datahike-server
-COPY target/datahike-server-standalone.jar .
+COPY target/datahike-server-standalone.jar /
 
 EXPOSE 3000
 
-ENTRYPOINT ["java", "-jar", "datahike-server-standalone.jar"]
+CMD ["/datahike-server-standalone.jar"]
