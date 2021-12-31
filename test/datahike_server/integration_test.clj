@@ -1,4 +1,4 @@
-(ns datahike-server.integration-test
+(ns ^:integration datahike-server.integration-test
   (:require [clojure.test :refer :all]
             [clojure.edn :as edn]
             [clj-http.client :as client]
@@ -31,6 +31,10 @@
 
 (use-fixtures :once setup-db)
 
+(comment
+  (start-all)
+  (stop-all))
+
 (deftest swagger-test
   (testing "Swagger Json"
     (is (= {:title "Datahike API"
@@ -49,12 +53,18 @@
               :keep-history? false,
               :schema-flexibility :read,
               :name "sessions",
-              :index :datahike.index/hitchhiker-tree}
+              :index :datahike.index/hitchhiker-tree
+              :attribute-refs? false,
+              :cache-size 100000,
+              :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}
              {:store {:path "/tmp/dh-file", :backend :file},
               :keep-history? true,
               :schema-flexibility :write,
               :name "users",
-              :index :datahike.index/hitchhiker-tree}]}
+              :index :datahike.index/hitchhiker-tree
+              :attribute-refs? false,
+              :cache-size 100000,
+              :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}]}
            (api-request :get "/databases"
                         nil
                         {:headers {:authorization "token neverusethisaspassword"}})))))
@@ -144,7 +154,10 @@
 
 (deftest schema-test
   (testing "Fetches current schema"
-    (is (= #:db{:ident #:db{:unique :db.unique/identity}, :db.entity/attrs #:db{:cardinality :db.cardinality/many}, :db.entity/preds #:db{:cardinality :db.cardinality/many}}
+    (is (= #:db{:ident #:db{:unique :db.unique/identity}
+                :db.entity/attrs #:db{:cardinality :db.cardinality/many}
+                :db.entity/preds #:db{:cardinality :db.cardinality/many}
+                :db/txInstant {:db/noHistory true}}
            (api-request :get "/schema"
                         {}
                         {:headers {:authorization "token neverusethisaspassword"

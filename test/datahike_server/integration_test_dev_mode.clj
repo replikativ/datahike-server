@@ -1,4 +1,4 @@
-(ns datahike-server.integration-test-dev-mode
+(ns ^:integration datahike-server.integration-test-dev-mode
   (:require [clojure.test :refer :all]
             [clojure.edn :as edn]
             [clj-http.client :as client]
