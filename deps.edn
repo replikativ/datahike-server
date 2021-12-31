@@ -1,0 +1,35 @@
+{:deps {org.clojure/clojure     {:mvn/version "1.10.3"}
+        io.replikativ/datahike  {:mvn/version "0.4.1479"}
+        buddy/buddy-auth        {:mvn/version "3.0.1"}
+        ring/ring-core          {:mvn/version "1.9.4"}
+        ring/ring-jetty-adapter {:mvn/version "1.9.4"}
+        metosin/reitit          {:mvn/version "0.5.15"}
+        ring-cors/ring-cors     {:mvn/version "0.1.13"}
+        com.taoensso/timbre     {:mvn/version "5.1.2"}
+        environ/environ         {:mvn/version "1.2.0"}
+        mount/mount             {:mvn/version "0.1.16"}
+        metosin/spec-tools      {:mvn/version "0.10.5"}}
+
+ :paths ["src/clj"]
+
+ :aliases {:test {:extra-paths ["test"]
+                  :extra-deps {clj-http/clj-http {:mvn/version"3.12.3"}
+                               lambdaisland/kaocha {:mvn/version "1.60.972"}}
+                  :main-opts ["-m" "kaocha.runner"]
+                  :exec-fn kaocha.runner/exec-fn
+                  :exec-args {}}
+
+           :repl {:extra-deps {cider/cider-nrepl           {:mvn/version "0.27.4"}
+                               nrepl/nrepl                 {:mvn/version "0.9.0"}
+                               org.clojure/tools.namespace {:mvn/version "1.2.0"}}
+                  :main-opts ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware]"]}
+
+           :build {:deps {io.github.clojure/tools.build {:git/tag "v0.6.6" :git/sha "4d41c26"}
+                          slipset/deps-deploy {:mvn/version "0.2.0"}
+                          borkdude/gh-release-artifact {:git/url "https://github.com/borkdude/gh-release-artifact"
+                                                        :sha "2f8898d84126a4e922c490f8614211a8b0cf67cd"}
+                          babashka/babashka.curl {:mvn/version "0.1.1"}
+                          babashka/fs {:mvn/version "0.1.2"}
+                          cheshire/cheshire {:mvn/version "5.10.1"}}
+                   :ns-default build}}}
+
