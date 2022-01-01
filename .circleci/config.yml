@@ -12,7 +12,7 @@ jobs:
           at: /home/circleci
       - run:
           name: Build
-          command: clj -T:build uber
+          command: clojure -T:build uber
           no_output_timeout: 5m
       - persist_to_workspace:
           root: /home/circleci/
