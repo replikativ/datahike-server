@@ -1,24 +1,24 @@
 version: 2.1
 
 orbs:
-  lein: replikativ/clj-lein@0
-  docker: circleci/docker@1
+  tools: replikativ/clj-tools@0
+  docker: circleci/docker@2.0.1
 
 jobs:
   build:
-    executor: lein/leiningen
+    executor: tools/clojurecli
     steps:
       - attach_workspace:
           at: /home/circleci
       - run:
           name: Build
-          command: lein uberjar
+          command: clj -T:build uber
           no_output_timeout: 5m
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - replikativ/target/datahike-server-standalone.jar
-  deploy-snapshot:
+            - replikativ/target
+  deploy:
     executor: docker/docker
     steps:
       - setup_remote_docker
@@ -29,83 +29,46 @@ jobs:
           name: Build datahike-server container image
           command: |
             cd /home/circleci/replikativ
-            docker build -t replikativ/datahike-server:snapshot .
+            VERSION=$(git rev-list HEAD --count)
+            docker build -t replikativ/datahike-server:${VERSION} .
       - run:
           name: Deploy Snapshot to Docker Hub
           command: |
             cd /home/circleci/replikativ
-            VERSION=$(head -n 1 project.clj | awk '{print $3}' | tr -d \")
-            if [[ ${VERSION} =~ .*-SNAPSHOT ]]; then
-                docker tag replikativ/datahike-server:snapshot replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:snapshot
-            else
-                exit 0
-            fi
-  deploy-release:
-    executor: docker/docker
-    steps:
-      - setup_remote_docker
-      - attach_workspace:
-          at: /home/circleci
-      - docker/check
-      - run:
-          name: Build datahike-server container image
-          command: |
-            cd /home/circleci/replikativ
-            docker build -t replikativ/datahike-server:release .
-      - run:
-          name: Deploy Release to Docker Hub
-          command: |
-            cd /home/circleci/replikativ
-            VERSION=$(head -n 1 project.clj | awk '{print $3}' | tr -d \")
-            if [[ ${VERSION} =~ .*-SNAPSHOT ]]; then
-                exit 0
-            else
-                docker tag replikativ/datahike-server:release replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:${VERSION}
-                docker push replikativ/datahike-server:release
-            fi
+            VERSION=$(git rev-list HEAD --count)
+            docker push replikativ/datahike-server:${VERSION}
+
 workflows:
   build-test-and-deploy:
     jobs:
-      - lein/setup:
+      - tools/setup:
           context: dockerhub-deploy
-      - lein/format:
-          context: dockerhub-deploy
-          requires:
-            - lein/setup
-      - lein/unittest:
+      - tools/format:
           context: dockerhub-deploy
           requires:
-            - lein/setup
-      - lein/integrationtest:
+            - tools/setup
+      - tools/unittest:
           context: dockerhub-deploy
           requires:
-            - lein/setup
+            - tools/setup
+      - tools/integrationtest:
+          context: dockerhub-deploy
+          requires:
+            - tools/setup
       - build:
           context: dockerhub-deploy
           requires:
-            - lein/setup
-      - deploy-snapshot:
-          context: dockerhub-deploy
-          filters:
-            branches:
-              only: development
-          requires:
-            - lein/setup
-            - lein/format
-            - lein/integrationtest
-            - build
-      - deploy-release:
+            - tools/setup
+      - deploy:
           context:
             - clojars-deploy
             - dockerhub-deploy
           filters:
             branches:
-              only: master
+              only: main
           requires:
-            - lein/setup
-            - lein/format
-            - lein/integrationtest
+            - tools/setup
+            - tools/format
+            - tools/unittest
+            - tools/integrationtest
             - build

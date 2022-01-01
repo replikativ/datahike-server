@@ -1,6 +1,6 @@
-FROM gcr.io/distroless/java:11
+FROM gcr.io/distroless/java:17
 
-COPY target/datahike-server-standalone.jar /
+COPY target/datahike-server-*-standalone.jar /
 
 EXPOSE 3000
 
