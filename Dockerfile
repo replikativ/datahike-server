@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java:17
+FROM gcr.io/distroless/java17-debian11
 
 COPY target/datahike-server-*-standalone.jar /
 

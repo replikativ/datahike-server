@@ -2,7 +2,6 @@ version: 2.1
 
 orbs:
   tools: replikativ/clj-tools@0
-  docker: circleci/docker@2.0.1
 
 jobs:
   build:
@@ -12,31 +11,33 @@ jobs:
           at: /home/circleci
       - run:
           name: Build
-          command: clojure -T:build uber
+          command: clojure -Sthreads 1 -T:build uber
           no_output_timeout: 5m
       - persist_to_workspace:
           root: /home/circleci/
           paths:
             - replikativ/target
   deploy:
-    executor: docker/docker
+    executor: tools/clojurecli
     steps:
-      - setup_remote_docker
       - attach_workspace:
           at: /home/circleci
-      - docker/check
       - run:
-          name: Build datahike-server container image
+          name: Deploy to Docker Hub
           command: |
-            cd /home/circleci/replikativ
-            VERSION=$(git rev-list HEAD --count)
-            docker build -t replikativ/datahike-server:${VERSION} .
+            clojure -Sthreads 1 \
+                    -T:build deploy-image \
+                    :docker-login ${DOCKER_LOGIN} \
+                    :docker-password ${DOCKER_PASSWORD} \
+          no_output_timeout: 5m
+  release:
+    executor: tools/clojurecli
+    steps:
+      - attach_workspace:
+          at: /home/circleci
       - run:
-          name: Deploy Snapshot to Docker Hub
-          command: |
-            cd /home/circleci/replikativ
-            VERSION=$(git rev-list HEAD --count)
-            docker push replikativ/datahike-server:${VERSION}
+          name: Release
+          command: clojure -Sthreads 1 -T:build release
 
 workflows:
   build-test-and-deploy:
@@ -62,7 +63,6 @@ workflows:
             - tools/setup
       - deploy:
           context:
-            - clojars-deploy
             - dockerhub-deploy
           filters:
             branches:
@@ -73,3 +73,12 @@ workflows:
             - tools/unittest
             - tools/integrationtest
             - build
+      - release:
+          context:
+            - dockerhub-deploy
+            - github-token
+          filters:
+            branches:
+              only: main
+          requires:
+            - deploy
