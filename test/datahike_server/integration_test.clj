@@ -31,10 +31,6 @@
 
 (use-fixtures :once setup-db)
 
-(comment
-  (start-all)
-  (stop-all))
-
 (deftest swagger-test
   (testing "Swagger Json"
     (is (= {:title "Datahike API"
