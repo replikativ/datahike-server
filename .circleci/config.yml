@@ -43,6 +43,7 @@ workflows:
     jobs:
       - tools/setup:
           context: dockerhub-deploy
+          setup_cljs: false
       - tools/format:
           context: dockerhub-deploy
           requires:
