@@ -10,12 +10,12 @@ function setup() {
 
 function test_auth() {
     cp -av test/datahike_server/resources/config.edn resources/config.edn
-    lein test :only datahike-server.integration-test
+    ./bin/kaocha --focus datahike-server.integration-test
 }
 
 function test_dev-mode() {
     cp -av test/datahike_server/resources/config-dev-mode.edn resources/config.edn
-    lein test :only datahike-server.integration-test-dev-mode
+    ./bin/kaocha --focus datahike-server.integration-test-dev-mode
 }
 
 function teardown() {

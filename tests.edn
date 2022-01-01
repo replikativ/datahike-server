@@ -1,0 +1,5 @@
+#kaocha/v1 {:tests [{:id :unit
+                     :skip-meta [:integration]}
+                    {:id :integration
+                     :focus-meta [:integration]}]
+            :reporter kaocha.report/documentation}

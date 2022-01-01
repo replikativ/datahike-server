@@ -32,3 +32,4 @@ datahike-server.iml
 resources/config.edn
 .clj-kondo/.cache/
 .dir-locals.el
+.cpcache/

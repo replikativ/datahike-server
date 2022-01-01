@@ -7,11 +7,17 @@ Datahike with the backend of your choice and run it in a container or on a VM.
 Push the button to deploy Datahike as a Container Instance on MS Azure with
 a file backend.
 
+## Build Datahike Server
+
+`clj -T:build uber` builds an uberjar into the `target/`-directory.
+
 ## Run Datahike Server
 
 Run Datahike Server in dev-mode without any authentication:
 
-`DATAHIKE_SERVER_DEV_MODE=true java -jar datahike-server-standalone.jar`
+`DATAHIKE_SERVER_DEV_MODE=true java -jar datahike-server-0.1.84-standalone.jar`
+
+Adjust the command according to the version you built into the `target/`-directory.
 
 ## Configuring Datahike Server
 ### File Configuration
