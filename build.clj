@@ -17,6 +17,7 @@
 (def uber-file (format "%s-%s-standalone.jar" (name lib) version))
 (def uber-path (format "target/%s" uber-file))
 (def image (format "docker.io/replikativ/datahike-server:%s" version))
+(def latest-image (format "docker.io/replikativ/datahike-server:latest"))
 
 (defn get-version
   [_]
@@ -91,14 +92,20 @@
   [{:keys [docker-login docker-password]}]
   (if-not (and docker-login docker-password)
     (println "Docker credentials missing.")
-    (.containerize
-      (-> (Jib/from "gcr.io/distroless/java17-debian11")
-          (.addLayer [(Paths/get uber-path (into-array String[]))] (AbsoluteUnixPath/get "/"))
-          (.setProgramArguments [(format "/%s" uber-file)])
-          (.addExposedPort (Port/tcp 3000)))
-      (Containerizer/to
-        (-> (RegistryImage/named image)
-            (.addCredential (str docker-login) (str docker-password))))))
+    (let [container-builder (-> (Jib/from "gcr.io/distroless/java17-debian11")
+                                (.addLayer [(Paths/get uber-path (into-array String[]))] (AbsoluteUnixPath/get "/"))
+                                (.setProgramArguments [(format "/%s" uber-file)])
+                                (.addExposedPort (Port/tcp 3000)))]
+       (.containerize
+         container-builder
+         (Containerizer/to
+           (-> (RegistryImage/named image)
+               (.addCredential (str docker-login) (str docker-password)))))
+       (.containerize
+         container-builder
+         (Containerizer/to
+           (-> (RegistryImage/named latest-image)
+               (.addCredential (str docker-login) (str docker-password)))))))
   (println "Deployed new image to Docker Hub: " image))
 
 (comment
