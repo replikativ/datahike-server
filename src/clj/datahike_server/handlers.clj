@@ -109,10 +109,10 @@
 
   (load-entities {:conn conn
                   :parameters {:body {:entities [[200 :db/ident :age 1000 true]
-                                                [200 :db/valueType :db.type/long 1000 true]
-                                                [200 :db/cardinality :db.cardinality/one 1000 true]
-                                                [300 :age 20 1000 true]
-                                                [400 :age 30 1001 true]]}}})
+                                                 [200 :db/valueType :db.type/long 1000 true]
+                                                 [200 :db/cardinality :db.cardinality/one 1000 true]
+                                                 [300 :age 20 1000 true]
+                                                 [400 :age 30 1001 true]]}}})
 
   (d/datoms @conn :eavt)
 
@@ -152,12 +152,9 @@
 
   (d/q '[:find ?e :where [?e :name "Alice"]] @conn)
 
-
   (index-range {:parameters {:body {:attrid (dd/-ref-for @conn :name)
                                     :start "A"
                                     :end "z"}}
                 :conn conn})
 
-  (reverse-schema {:conn conn})
-
-  )
+  (reverse-schema {:conn conn}))
