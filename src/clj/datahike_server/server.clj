@@ -24,6 +24,9 @@
             [clojure.pprint :refer [pprint]]
             [spec-tools.core :as st]))
 
+(defn long? [x]
+  (instance? java.lang.Long x))
+
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
 (s/def ::tx-meta (s/coll-of ::entity))
@@ -53,6 +56,8 @@
 (s/def ::db-name string?)
 (s/def ::query-id number?)
 
+(s/def ::attrids [])
+
 (s/def ::conn-header (s/keys :req-un [::db-name]))
 
 (s/def ::db-hash number?)
@@ -61,6 +66,10 @@
 (s/def ::db-header (s/keys :req-un [::db-name]
                            :opt-un [::db-tx]))
 (s/def ::params map?)
+
+(s/def :entity/vector (s/cat :e long? :a keyword? :v any? :t long? :added boolean?))
+(s/def ::entities (s/coll-of :entity/vector))
+(s/def ::imported-entities (s/keys :req-un [::entities]))
 
 (def routes
   [["/swagger.json"
@@ -188,7 +197,24 @@
                :summary    "Fetches current schema"
                :parameters {:header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
-               :handler    h/schema}}]])
+               :handler    h/schema}}]
+
+   ["/reverse-schema"
+    {:swagger {:tags ["API"]}
+     :get     {:operationId "ReverseSchema"
+               :summary    "Fetches current reversed schema"
+               :parameters {:header ::db-header}
+               :middleware [middleware/token-auth middleware/auth]
+               :handler    h/reverse-schema}}]
+   ["/load-entities"
+    {:swagger {:tags ["API"]}
+     :post {:operationId "LoadEntities"
+            :summery "Load entities directly"
+            :parameters {:header ::db-header
+                         :body (st/spec {:spec ::imported-entities
+                                         :name "imported-entities"})}
+            :middleware [middleware/token-auth middleware/auth]
+            :handler h/load-entities}}]])
 
 (defn wrap-db-connection [handler]
   (fn [request]
@@ -203,7 +229,7 @@
       (handler request))))
 
 (def route-opts
-  {:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
+  {;; :reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
    ;; :validate spec/validate ;; enable spec validation for route data
    ;;:reitit.spec/wrap spell/closed ;; strict top-level validation
    :exception pretty/exception
@@ -241,3 +267,7 @@
            (start-server config))
   :stop (.stop server))
 
+
+(comment
+
+  )

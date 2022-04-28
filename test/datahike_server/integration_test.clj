@@ -1,35 +1,22 @@
 (ns ^:integration datahike-server.integration-test
   (:require [clojure.test :refer :all]
-            [clojure.edn :as edn]
-            [clj-http.client :as client]
-            [datahike-server.core :refer [start-all stop-all]]))
+            [datahike-server.test-utils :refer [api-request setup-db]]))
 
-(defn parse-body [{:keys [body]}]
-  (if-not (empty? body)
-    (edn/read-string body)
-    ""))
+(defn add-test-data []
+  (api-request :post "/transact"
+               {:tx-data [{:name "Alice" :age 20} {:name "Bob" :age 21}]}
+               {:headers {:authorization "token neverusethisaspassword"
+                          :db-name "sessions"}}))
 
-(defn api-request
-  ([method url]
-   (api-request method url nil nil))
-  ([method url data]
-   (api-request method url data nil))
-  ([method url data opts]
-   (-> (client/request (merge {:url (str "http://localhost:3333" url)
-                               :method method
-                               :content-type "application/edn"
-                               :accept "application/edn"}
-                              (when (or (= method :post) data)
-                                {:body (str data)})
-                              opts))
-       parse-body)))
+(defn add-test-schema []
+  (api-request :post "/transact"
+               {:tx-data [{:db/ident :name
+                           :db/valueType :db.type/string
+                           :db/cardinality :db.cardinality/one}]}
+               {:headers {:authorization "token neverusethisaspassword"
+                          :db-name "users"}}))
 
-(defn setup-db [f]
-  (start-all)
-  (f)
-  (stop-all))
-
-(use-fixtures :once setup-db)
+(use-fixtures :each setup-db)
 
 (deftest swagger-test
   (testing "Swagger Json"
@@ -44,8 +31,6 @@
   (testing "Get Databases"
     (is (= {:databases
             [{:store {:id "sessions", :backend :mem},
-              :initial-tx [{:name "Alice", :age 20}
-                           {:name "Bob", :age 21}]
               :keep-history? false,
               :schema-flexibility :read,
               :name "sessions",
@@ -67,7 +52,7 @@
 
 (deftest transact-test
   (testing "Transact values"
-    (is (= {:tx-data [[3 :foo 1 536870914 true]], :tempids #:db{:current-tx 536870914}, :tx-meta []}
+    (is (= {:tx-data [[1 :foo 1 536870913 true]], :tempids #:db{:current-tx 536870913}, :tx-meta []}
            (api-request :post "/transact"
                         {:tx-data [{:foo 1}]}
                         {:headers {:authorization "token neverusethisaspassword"
@@ -75,19 +60,18 @@
 
 (deftest db-test
   (testing "Get current database as a hash"
-    (is (contains? (api-request :get "/db"
-                                nil
-                                {:headers {:authorization "token neverusethisaspassword"
-                                           :db-name "sessions"}})
-                   :tx))
-    (is (contains? (api-request :get "/db"
-                                nil
-                                {:headers {:authorization "token neverusethisaspassword"
-                                           :db-name "users"}})
-                   :tx))))
+    (is (= 0 (:hash (api-request :get "/db"
+                                     nil
+                                     {:headers {:authorization "token neverusethisaspassword"
+                                                :db-name "sessions"}}))))
+    (is (= 0 (:hash (api-request :get "/db"
+                                     nil
+                                     {:headers {:authorization "token neverusethisaspassword"
+                                                :db-name "users"}}))))))
 
 (deftest q-test
   (testing "Executes a datalog query"
+    (add-test-data)
     (is (= "Alice"
            (second (first (api-request :post "/q"
                                        {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
@@ -97,6 +81,7 @@
 
 (deftest pull-test
   (testing "Fetches data from database using recursive declarative description."
+    (add-test-data)
     (is (= {:name "Alice"}
            (api-request :post "/pull"
                         {:selector '[:name]
@@ -105,6 +90,7 @@
                                    :db-name "sessions"}})))))
 (deftest pull-many-test
   (testing "Same as pull, but accepts sequence of ids and returns sequence of maps."
+    (add-test-data)
     (is (= [{:name "Alice"} {:name "Bob"}]
            (api-request :post "/pull-many"
                         {:selector '[:name]
@@ -114,16 +100,19 @@
 
 (deftest datoms-test
   (testing "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments."
+    (add-test-data)
     (is (= 20
-           (nth (first (api-request :post "/datoms"
-                                    {:index :aevt
-                                     :components [:age]}
-                                    {:headers {:authorization "token neverusethisaspassword"
-                                               :db-name "sessions"}}))
-                2)))))
+           (-> (api-request :post "/datoms"
+                                  {:index :aevt
+                                   :components [:age]}
+                                  {:headers {:authorization "token neverusethisaspassword"
+                                             :db-name "sessions"}})
+               first
+               (get 2))))))
 
 (deftest seek-datoms-test
   (testing "Similar to datoms, but will return datoms starting from specified components and including rest of the database until the end of the index."
+    (add-test-data)
     (is (= 20
            (nth (first (api-request :post "/seek-datoms"
                                     {:index :aevt
@@ -134,14 +123,14 @@
 
 (deftest tempid-test
   (testing "Allocates and returns an unique temporary id."
-    (is (= {:tempid -1000001}
-           (api-request :get "/tempid"
-                        {}
-                        {:headers {:authorization "token neverusethisaspassword"
-                                   :db-name "sessions"}})))))
+    (is (number? (:tempid (api-request :get "/tempid"
+                                       {}
+                                       {:headers {:authorization "token neverusethisaspassword"
+                                                  :db-name "sessions"}}))))))
 
 (deftest entity-test
   (testing "Retrieves an entity by its id from database. Realizes full entity in contrast to entity in local environments."
+    (add-test-data)
     (is (= {:age 21 :name "Bob"}
            (api-request :post "/entity"
                         {:eid 2}
@@ -150,11 +139,40 @@
 
 (deftest schema-test
   (testing "Fetches current schema"
-    (is (= #:db{:ident #:db{:unique :db.unique/identity}
-                :db.entity/attrs #:db{:cardinality :db.cardinality/many}
-                :db.entity/preds #:db{:cardinality :db.cardinality/many}
-                :db/txInstant {:db/noHistory true}}
+    (add-test-schema)
+    (is (= {:name #:db{:ident       :name,
+                       :valueType   :db.type/string,
+                       :cardinality :db.cardinality/one,
+                       :id          1}}
            (api-request :get "/schema"
                         {}
                         {:headers {:authorization "token neverusethisaspassword"
+                                   :db-name       "users"}})))))
+
+(deftest reverse-schema-test
+  (testing "Fetches current schema"
+    (add-test-schema)
+    (is (= {:db/ident #{:name}}
+           (api-request :get "/reverse-schema"
+                        {}
+                        {:headers {:authorization "token neverusethisaspassword"
+                                   :db-name       "users"}})))))
+
+(deftest load-entities-test
+  (testing "Loading entities into a new database"
+    (api-request :post "/load-entities"
+                 {:entities [[100 :foo 200 1000 true]
+                             [101 :foo  300 1000 true]
+                             [100 :foo 200 1001 false]
+                             [100 :foo 201 1001 true]]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name "sessions"}})
+    (is (= [[1 :foo 201 536870914 true]
+            [2 :foo 300 536870913 true]]
+           (api-request :post "/datoms"
+                        {:index :eavt
+                         :components []}
+                        {:headers {:authorization "token neverusethisaspassword"
                                    :db-name "sessions"}})))))
+
+
