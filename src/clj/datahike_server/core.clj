@@ -24,6 +24,4 @@
 
   (mount/start)
 
-  (mount/stop)
-
-  )
+  (mount/stop))

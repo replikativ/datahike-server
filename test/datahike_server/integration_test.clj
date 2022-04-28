@@ -61,13 +61,13 @@
 (deftest db-test
   (testing "Get current database as a hash"
     (is (= 0 (:hash (api-request :get "/db"
-                                     nil
-                                     {:headers {:authorization "token neverusethisaspassword"
-                                                :db-name "sessions"}}))))
+                                 nil
+                                 {:headers {:authorization "token neverusethisaspassword"
+                                            :db-name "sessions"}}))))
     (is (= 0 (:hash (api-request :get "/db"
-                                     nil
-                                     {:headers {:authorization "token neverusethisaspassword"
-                                                :db-name "users"}}))))))
+                                 nil
+                                 {:headers {:authorization "token neverusethisaspassword"
+                                            :db-name "users"}}))))))
 
 (deftest q-test
   (testing "Executes a datalog query"
@@ -103,10 +103,10 @@
     (add-test-data)
     (is (= 20
            (-> (api-request :post "/datoms"
-                                  {:index :aevt
-                                   :components [:age]}
-                                  {:headers {:authorization "token neverusethisaspassword"
-                                             :db-name "sessions"}})
+                            {:index :aevt
+                             :components [:age]}
+                            {:headers {:authorization "token neverusethisaspassword"
+                                       :db-name "sessions"}})
                first
                (get 2))))))
 

@@ -13,6 +13,7 @@ function test_auth() {
     ./bin/kaocha --focus datahike-server.integration-test
 }
 function test_dev_mode() {
+    cp -av test/datahike_server/resources/config-dev-mode.edn resources/config.edn
     ./bin/kaocha --focus datahike-server.setup-test
 }
 function teardown() {
