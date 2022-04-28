@@ -20,8 +20,6 @@
 
 (comment
 
-  config
-
   (mount/start)
 
   (mount/stop))
