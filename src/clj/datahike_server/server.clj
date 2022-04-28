@@ -266,5 +266,3 @@
            (log/debug "Starting server")
            (start-server config))
   :stop (.stop server))
-
-(comment)
