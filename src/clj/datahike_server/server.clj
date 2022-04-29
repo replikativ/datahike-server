@@ -121,7 +121,7 @@
                :summary "Get current database as a hash."
                :parameters {:header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
-               :handler    h/get-db}}]
+               :handler    h/get-db-hash}}]
 
    ["/q"
     {:swagger {:tags ["API"]}
@@ -206,6 +206,7 @@
                :parameters {:header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/reverse-schema}}]
+
    ["/load-entities"
     {:swagger {:tags ["API"]}
      :post {:operationId "LoadEntities"
@@ -220,11 +221,24 @@
   (fn [request]
     (if-let [db-name (get-in request [:headers "db-name"])]
       (if-let [conn (conns db-name)]
-        (if-let [tx (get-in request [:headers "db-tx"])]
-          (if-let [db (d/as-of @conn (Integer/parseInt tx))]
-            (handler (assoc request :db db :conn conn))
-            (handler request))
-          (handler (assoc request :conn conn)))
+        (handler (assoc request :conn conn))
+        (handler request))
+      (handler request))))
+
+(defn wrap-db-history [handler]
+  (fn [{:keys [conn] :as request}]
+    (if (some? conn)
+      (if-let [history-type (get-in request [:headers "db-history-type"])]
+        (if (= "history" history-type)
+          (handler (assoc request :db (try (d/history @conn)
+                                           (catch Exception e
+                                             (println "EEEEEEEEEEEEE")))))
+          (if-let [timepoint (get-in request [:headers "db-timepoint"])]
+            (case history-type
+              "as-of" (handler (assoc request :db (d/as-of @conn (Long/parseLong timepoint))))
+              "since" (handler (assoc request :db (d/since @conn (Long/parseLong timepoint))))
+              (handler request))
+            (handler request)))
         (handler request))
       (handler request))))
 
@@ -254,6 +268,7 @@
           :config {:validatorUrl     nil
                    :operationsSorter "alpha"}})
         (ring/create-default-handler)))
+      wrap-db-history
       wrap-db-connection
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
                  :access-control-allow-methods [:get :put :post :delete])))

@@ -1,7 +1,6 @@
 (ns datahike-server.handlers
   (:require [datahike-server.database :refer [conns]]
             [datahike.api :as d]
-            [datahike.db :as dd]
             [datahike.core :as c]))
 
 (defn success
@@ -15,7 +14,7 @@
         databases (into [] xf (-> conns vals))]
     (success {:databases databases})))
 
-(defn get-db [{:keys [conn]}]
+(defn get-db-hash [{:keys [conn]}]
   (success {:hash (hash @conn)}))
 
 (defn cleanup-result [result]

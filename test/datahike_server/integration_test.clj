@@ -12,6 +12,7 @@
   (api-request :post "/transact"
                {:tx-data [{:db/ident :name
                            :db/valueType :db.type/string
+                           :db/unique :db.unique/identity
                            :db/cardinality :db.cardinality/one}]}
                {:headers {:authorization "token neverusethisaspassword"
                           :db-name "users"}}))
@@ -142,6 +143,7 @@
     (add-test-schema)
     (is (= {:name #:db{:ident       :name,
                        :valueType   :db.type/string,
+                       :unique  :db.unique/identity
                        :cardinality :db.cardinality/one,
                        :id          1}}
            (api-request :get "/schema"
@@ -152,7 +154,10 @@
 (deftest reverse-schema-test
   (testing "Fetches current reverse schema"
     (add-test-schema)
-    (is (= {:db/ident #{:name}}
+    (is (= {:db/ident #{:name}
+            :db/unique #{:name}
+            :db.unique/identity #{:name}
+            :db/index #{:name}}
            (api-request :get "/reverse-schema"
                         {}
                         {:headers {:authorization "token neverusethisaspassword"
@@ -175,4 +180,85 @@
                         {:headers {:authorization "token neverusethisaspassword"
                                    :db-name "sessions"}})))))
 
+(deftest history-test
+  (testing "History with removed entries"
+    (add-test-schema)
+    (api-request :post "/transact"
+                 {:tx-data [{:name "Alice"} {:name "Bob"}]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name "users"}})
+    (api-request :post "/transact"
+                 {:tx-data [[:db/retractEntity [:name "Alice"]]]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name       "users"}})
+    (is (= #{[2 "Alice" false] [2 "Alice" true]}
+           (set (api-request :post "/q"
+                             {:query '[:find ?e ?n ?s :in $ ?n :where [?e :name ?n _ ?s]]
+                              :args ["Alice"]}
+                             {:headers {:authorization "token neverusethisaspassword"
+                                        :db-name       "users"
+                                        :db-history-type "history"}} ))))))
 
+
+(deftest as-of-test
+  (testing "As-of with removed entries"
+    (add-test-schema)
+    (api-request :post "/transact"
+                 {:tx-data [{:name "Alice"} {:name "Bob"}]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name "users"}})
+    (api-request :post "/transact"
+                 {:tx-data [[:db/retractEntity [:name "Alice"]]]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name       "users"}})
+    (let [tx-id (->> (api-request :post "/q"
+                                  {:query '[:find ?t :where [?t :db/txInstant _ ?t]]}
+                                  {:headers {:authorization "token neverusethisaspassword"
+                                             :db-name       "users"}} )
+                     second
+                     first)]
+      (is (= #{[2 "Alice"]}
+               (set (api-request :post "/q"
+                                 {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n ]]
+                                  :args ["Alice"]}
+                                 {:headers {:authorization "token neverusethisaspassword"
+                                            :db-name       "users"
+                                            :db-timepoint tx-id
+                                            :db-history-type "as-of"}} ))))
+      (is (= []
+             (api-request :post "/q"
+                          {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n ]]
+                           :args ["Alice"]}
+                          {:headers {:authorization "token neverusethisaspassword"
+                                     :db-name       "users"}} ))))))
+(deftest since-test
+  (testing "Since with removed and new entries"
+    (add-test-schema)
+    (api-request :post "/transact"
+                 {:tx-data [{:name "Alice"} {:name "Bob"}]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name "users"}})
+    (api-request :post "/transact"
+                 {:tx-data [{:name "Charlie"}]}
+                 {:headers {:authorization "token neverusethisaspassword"
+                            :db-name       "users"}})
+    (let [tx-id (->> (api-request :post "/q"
+                                  {:query '[:find ?t :where [?t :db/txInstant _ ?t]]}
+                                  {:headers {:authorization "token neverusethisaspassword"
+                                             :db-name       "users"}} )
+                     last
+                     first)]
+      (is (= #{["Charlie"]}
+               (set (api-request :post "/q"
+                                 {:query '[:find ?n :in $ ?n :where [?e :name ?n]]
+                                  :args []}
+                                 {:headers {:authorization "token neverusethisaspassword"
+                                            :db-name       "users"
+                                            :db-timepoint tx-id
+                                            :db-history-type "since"}} ))))
+      (is (= #{["Alice"] ["Bob"] ["Charlie"]}
+             (set(api-request :post "/q"
+                              {:query '[:find ?n :in $ ?n :where [?e :name ?n ]]
+                               :args []}
+                              {:headers {:authorization "token neverusethisaspassword"
+                                         :db-name       "users"}} )))))))
