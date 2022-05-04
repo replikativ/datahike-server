@@ -211,7 +211,6 @@
                                    :db-name       "sessions"
                                    :db-history-type "history"}})))))
 
-
 (deftest as-of-test
   (testing "As-of with removed entries"
     (add-test-schema)
