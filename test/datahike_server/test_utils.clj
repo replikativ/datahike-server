@@ -17,6 +17,7 @@
   ([method url data opts]
    (-> (client/request (merge {:url (str "http://localhost:3333" url)
                                :method method
+                               :throw-exceptions? false
                                :content-type "application/edn"
                                :accept "application/edn"}
                               (when (or (= method :post) data)
