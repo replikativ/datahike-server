@@ -33,3 +33,5 @@ resources/config.edn
 .clj-kondo/.cache/
 .dir-locals.el
 .cpcache/
+.lsp
+.calva
