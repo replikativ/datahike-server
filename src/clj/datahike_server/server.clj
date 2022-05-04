@@ -26,9 +26,6 @@
 (defn long? [x]
   (instance? java.lang.Long x))
 
-(defn long? [x]
-  (instance? java.lang.Long x))
-
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
 (s/def ::tx-meta (s/coll-of ::entity))
