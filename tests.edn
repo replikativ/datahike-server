@@ -2,4 +2,4 @@
                      :skip-meta [:integration]}
                     {:id :integration
                      :focus-meta [:integration]}]
-            :reporter kaocha.report/documentation}
+            :reporter kaocha.report/dots}
