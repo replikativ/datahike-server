@@ -150,7 +150,7 @@
                                    :db-name       "users"}})))))
 
 (deftest reverse-schema-test
-  (testing "Fetches current schema"
+  (testing "Fetches current reverse schema"
     (add-test-schema)
     (is (= {:db/ident #{:name}}
            (api-request :get "/reverse-schema"
