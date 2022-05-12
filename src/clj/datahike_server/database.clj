@@ -38,9 +38,8 @@
 
 (defn cleanup-databases []
   (stop #'datahike-server.database/conns)
-  (doall
-   (doseq [cfg (:databases config)]
-     (println "Purging " cfg " ...")
-     (d/delete-database cfg)
-     (println "Done")))
+  (doseq [cfg (:databases config)]
+    (println "Purging " cfg " ...")
+    (d/delete-database cfg)
+    (println "Done"))
   (start #'datahike-server.database/conns))
