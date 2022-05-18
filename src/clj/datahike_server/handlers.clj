@@ -16,7 +16,7 @@
     (success {:databases databases})))
 
 (defn get-db [{:keys [conn]}]
-  (success {:tx (dd/-max-tx @conn)}))
+  (success {:hash (hash @conn)}))
 
 (defn cleanup-result [result]
   (-> result
@@ -63,4 +63,19 @@
                     (into {}))))))
 
 (defn schema [{:keys [conn]}]
-  (success (dd/-schema @conn)))
+  (success (d/schema @conn)))
+
+(defn reverse-schema [{:keys [conn]}]
+  (success (d/reverse-schema @conn)))
+
+(defn index-range [{{{:keys [attrid start end]} :body} :parameters conn :conn db :db}]
+  (let [db (or db @conn)]
+    (success (d/index-range db {:attrid attrid
+                                :start  start
+                                :end    end}))))
+
+(defn load-entities [{{{:keys [entities]} :body} :parameters conn :conn}]
+  (-> @(d/load-entities conn entities)
+      cleanup-result
+      success))
+

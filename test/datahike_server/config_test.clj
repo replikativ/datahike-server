@@ -65,8 +65,6 @@
     (is (= nil (load-config-file "test/datahike_server/resources/config.edn.broken")))
     (is (= {:databases [{:store {:backend :mem
                                  :id "sessions"}
-                         :initial-tx [{:name "Alice", :age 20}
-                                      {:name "Bob", :age 21}]
                          :schema-flexibility :read
                          :keep-history? false
                          :name "sessions"}
