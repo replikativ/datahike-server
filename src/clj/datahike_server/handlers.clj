@@ -39,7 +39,7 @@
               :args (concat [(or db @conn)] (:args body []))
               :limit (:limit body -1)
               :offset (:offset body 0)}]
-    (log/info "Querying with arguments: " args)
+    (log/info "Querying with arguments: " (str args))
     (success (into [] (d/q args)))))
 
 (defn pull [{{{:keys [selector eid]} :body} :parameters conn :conn db :db}]
