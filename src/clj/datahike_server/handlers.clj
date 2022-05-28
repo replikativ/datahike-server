@@ -28,8 +28,8 @@
   (let [start (System/currentTimeMillis)
         args {:tx-data tx-data
               :tx-meta tx-meta}
+        _ (log/info "Transacting with arguments: " args)
         result (d/transact conn args)]
-    (log/info "Transacting with arguments: " args)
     (-> result
         cleanup-result
         success)))
