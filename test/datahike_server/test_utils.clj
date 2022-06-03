@@ -37,6 +37,7 @@
    (let [encode (if json-req? (partial m/encode json-fmt) str)]
      (-> (client/request (merge {:url (str "http://localhost:3333" url)
                                  :method method
+                                 :throw-exceptions? false
                                  :content-type (if json-req? json-fmt edn-fmt)
                                  :accept (if json-ret? json-fmt edn-fmt)}
                                 (when (or (= method :post) data)
