@@ -2,11 +2,12 @@
   (:require [datahike-server.database :refer [conns]]
             [datahike.api :as d]
             [datahike.core :as c]
+            [datahike-server.json-utils :as ju]
             [taoensso.timbre :as log]))
 
 (defn success
-  ([data] {:status 200 :body data})
-  ([] {:status 200}))
+  ([] {:status 200})
+  ([data] {:status 200 :body data}))
 
 (defn list-databases [_]
   (let [xf (comp
@@ -18,16 +19,16 @@
 (defn get-db [{:keys [conn]}]
   (success (select-keys @conn [:meta :config :max-eid :max-tx :hash])))
 
-(defn cleanup-result [result]
+(defn- cleanup-result [result]
   (-> result
       (dissoc :db-after :db-before)
       (update :tx-data #(mapv (comp vec seq) %))
       (update :tx-meta #(mapv (comp vec seq) %))))
 
-(defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters conn :conn}]
-  (let [start (System/currentTimeMillis)
-        args {:tx-data tx-data
-              :tx-meta tx-meta}
+(defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters conn :conn content-type :content-type}]
+  (let [args {:tx-data (if (= content-type ju/json-fmt) (ju/xf-data-for-tx tx-data conn) tx-data)
+              :tx-meta (if (= content-type ju/json-fmt) (ju/xf-data-for-tx tx-meta conn) tx-meta)}
+        start (System/currentTimeMillis)
         _ (log/info "Transacting with arguments: " args)
         result (d/transact conn args)]
     (-> result

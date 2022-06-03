@@ -1,131 +1,284 @@
 (ns ^:integration datahike-server.integration-test
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
+            [datahike-server.json-utils :as ju]
             [datahike-server.test-utils :refer [api-request setup-db] :as utils]))
 
+(def ^:private basic-header
+  {:headers {:authorization "token neverusethisaspassword"}})
+
+(def ^:private sessions-db-header
+  (assoc-in basic-header [:headers :db-name] "sessions"))
+
+(def ^:private users-db-header
+  (assoc-in basic-header [:headers :db-name] "users"))
+
 (defn add-test-data []
-  (api-request :post "/transact"
-               {:tx-data [{:name "Alice" :age 20} {:name "Bob" :age 21}]}
-               {:headers {:authorization "token neverusethisaspassword"
-                          :db-name "sessions"}}))
+  (let [test-data [{:name "Alice" :age 20} {:name "Bob" :age 21}]]
+    (api-request :post "/transact" {:tx-data test-data} sessions-db-header)))
 
 (defn add-test-schema []
-  (api-request :post "/transact"
-               {:tx-data [{:db/ident :name
-                           :db/valueType :db.type/string
-                           :db/unique :db.unique/identity
-                           :db/cardinality :db.cardinality/one}]}
-               {:headers {:authorization "token neverusethisaspassword"
-                          :db-name "users"}}))
+  (let [test-schema [{:db/ident :name
+                      :db/valueType :db.type/string
+                      :db/unique :db.unique/identity
+                      :db/cardinality :db.cardinality/one}]]
+    (api-request :post "/transact" {:tx-data test-schema} users-db-header)))
 
 (use-fixtures :each setup-db)
 
-(deftest swagger-test
-  (testing "Swagger Json"
-    (is (= {:title "Datahike API"
-            :description "Transaction and search functions"}
-           (:info (api-request :get
-                               "/swagger.json"
-                               nil
-                               {:headers {:authorization "token neverusethisaspassword"}}))))))
+(defn swagger-test
+  ([]
+   (swagger-test false))
+  ([json?]
+   (testing "Swagger Json"
+     (is (= {:title "Datahike API"
+             :description "Transaction and search functions"}
+            (:info (api-request :get "/swagger.json" nil basic-header false json?)))))))
 
-(deftest databases-test
-  (testing "Get Databases"
-    (is (= {:databases
-            [{:store {:id "sessions", :backend :mem},
-              :keep-history? false,
-              :schema-flexibility :read,
-              :name "sessions",
-              :index :datahike.index/hitchhiker-tree
-              :attribute-refs? false,
-              :cache-size 100000,
-              :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}
-             {:store {:path "/tmp/dh-file", :backend :file},
-              :keep-history? true,
-              :schema-flexibility :write,
-              :name "users",
-              :index :datahike.index/hitchhiker-tree
-              :attribute-refs? false,
-              :cache-size 100000,
-              :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}]}
-           (api-request :get "/databases"
-                        nil
-                        {:headers {:authorization "token neverusethisaspassword"}})))))
+(deftest swagger-test-edn
+  (swagger-test))
 
-(deftest transact-test
-  (let [transact-request (partial api-request :post "/transact")
-        body {:tx-data [{:foo 1}]}
-        params {:headers {:authorization "token neverusethisaspassword"
-                          :db-name "sessions"}}]
-    (testing "Transact values on database without schema"
-      (is (= {:tx-data [[1 :foo 1 536870913 true]], :tempids #:db{:current-tx 536870913}, :tx-meta []}
-             (transact-request body params))))
-    (testing "Transact values on database with schema"
-      (is (= {:message "Bad entity attribute :foo at {:db/id 1, :foo 1}, not defined in current schema"}
-             (transact-request body (assoc-in params [:headers :db-name] "users")))))))
+(deftest swagger-test-json
+  (swagger-test true))
 
-(deftest GET-db-should-return-database-data
-  (testing "schemaless database should return meta, config, hash, max-tx, and max-eid"
-    (let [{:keys [meta] :as db-data} (api-request :get "/db"
-                                                  nil
-                                                  {:headers {:authorization "token neverusethisaspassword"
-                                                             :db-name       "sessions"}})]
-      (is (= #{:datahike/version
-               :konserve/version
-               :hitchhiker.tree/version
-               :datahike/id
-               :datahike/created-at}
-             (set (keys meta))))
-      (is (= {:config  {:store              {:backend :mem
-                                             :id      "sessions"}
-                        :schema-flexibility :read
-                        :attribute-refs?    false
-                        :keep-history?      false
-                        :name               "sessions"
-                        :cache-size         100000,
-                        :index              :datahike.index/hitchhiker-tree
-                        :index-config       {:index-b-factor       17
-                                             :index-log-size       283
-                                             :index-data-node-size 300}}
-              :hash    0
-              :max-tx  536870912
-              :max-eid 0}
-             (dissoc db-data :meta)))))
-  (testing "schemaful database should return meta, config, hash, max-tx, and max-eid"
-    (let [{:keys [meta] :as db-data} (api-request :get "/db"
-                                                  nil
-                                                  {:headers {:authorization "token neverusethisaspassword"
-                                                             :db-name       "users"}})]
-      (is (= #{:datahike/version
-               :konserve/version
-               :hitchhiker.tree/version
-               :datahike/id
-               :datahike/created-at}
-             (set (keys meta))))
-      (is (= {:config  {:store              {:backend :file
-                                             :path    "/tmp/dh-file"}
-                        :name               "users"
-                        :keep-history?      true
-                        :attribute-refs?    false
-                        :schema-flexibility :write
-                        :cache-size         100000
-                        :index :datahike.index/hitchhiker-tree
-                        :index-config       {:index-b-factor       17
-                                             :index-log-size       283
-                                             :index-data-node-size 300}}
-              :hash    0
-              :max-tx 536870912
-              :max-eid 0}
-             (dissoc db-data :meta))))))
+; TODO replace hard-coded expected value
+(defn databases-test
+  ([] (databases-test false))
+  ([json?]
+   (testing "Get Databases"
+     (is (= {:databases
+             [{:store {:id "sessions", :backend :mem},
+               :keep-history? false,
+               :schema-flexibility :read,
+               :name "sessions",
+               :index :datahike.index/hitchhiker-tree
+               :attribute-refs? false,
+               :cache-size 100000,
+               :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}
+                                        ;{:store {:path "/tmp/dh-file", :backend :file},
+              {:store {:path "tmp/dh-file", :backend :file},
+               :keep-history? true,
+               :schema-flexibility :write,
+               :name "users",
+               :index :datahike.index/hitchhiker-tree
+               :attribute-refs? false,
+               :cache-size 100000,
+               :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}]}
+            (let [ret (api-request :get "/databases" nil basic-header false json?)]
+              (if json?
+                (update ret :databases (fn [db] (mapv #(-> (update-in % [:store :backend] keyword)
+                                                           (update :schema-flexibility keyword)
+                                                           (update :index keyword))
+                                                      db)))
+                ret)))))))
+
+(deftest databases-test-edn
+  (databases-test))
+
+(deftest databases-test-json
+  (databases-test true))
+
+(defn- transact-request [body params json-req? json-ret?]
+  (api-request :post "/transact" body params json-req? json-ret?))
+
+(defn transact-test-without-schema
+  ([] (transact-test-without-schema false false))
+  ([json-req? json-ret?]
+   (let [body {:tx-data [{:foo 1}]}
+         result (transact-request body sessions-db-header json-req? json-ret?)]
+     (testing "Transact values on database without schema"
+       (is (= {:tx-data [[1 :foo 1 536870913 true]], :tempids #:db{:current-tx 536870913}, :tx-meta []}
+              (if json-ret?
+                ; TODO use json-utils instead?
+                (update result :tx-data utils/keywordise-strs)
+                result)))))))
+
+(deftest transact-test-without-schema-edn
+  (transact-test-without-schema))
+
+(deftest transact-test-without-schema-json
+  (transact-test-without-schema true true))
+
+(deftest transact-test-without-schema-edn-json
+  (transact-test-without-schema false true))
+
+(deftest transact-test-without-schema-json-edn
+  (transact-test-without-schema true false))
+
+(defn transact-test-not-in-schema
+  ([] (transact-test-not-in-schema false false))
+  ([json-req? json-ret?]
+   (testing "Transact values on database with schema"
+     (is (= {:message "Bad entity attribute :foo at {:db/id 1, :foo 1}, not defined in current schema"}
+            (transact-request {:tx-data [{:foo 1}]} users-db-header json-req? json-ret?))))))
+
+(deftest transact-test-not-in-schema-edn
+  (transact-test-not-in-schema))
+
+(deftest transact-test-not-in-schema-json
+  (transact-test-not-in-schema true true))
+
+(deftest transact-test-not-in-schema-edn-json
+  (transact-test-not-in-schema false true))
+
+(deftest transact-test-not-in-schema-json-edn
+  (transact-test-not-in-schema true false))
+
+(defn compare-retract-attr [result expected]
+  (let [retracted (-> result :tx-data rest)]
+    (is (every? #(not %) (map last retracted)))
+    (is (= expected (into #{} (map #(-> (subvec % 0 3)
+                                        (update 1 keyword))
+                                   retracted))))))
+
+(defn transact-test
+  ([] (transact-test false false))
+  ([json-req? json-ret?]
+   (let [schema [{:db/ident       :name
+                  :db/cardinality :db.cardinality/one
+                  :db/index       true
+                  :db/unique      :db.unique/identity
+                  :db/valueType   :db.type/string}
+                 {:db/ident       :parents
+                  :db/cardinality :db.cardinality/many
+                  :db/valueType   :db.type/ref}
+                 {:db/ident       :age
+                  :db/cardinality :db.cardinality/one
+                  :db/valueType   :db.type/long}]
+         xf-datom-vec (partial ju/xf-tx-data-vec [:parents] [:age] ju/keyword-valued-schema-attrs #{})
+         transact-request-wrapper (fn [body] (transact-request body users-db-header json-req? json-ret?))
+         trim-result (fn [result] (->> result
+                                       :tx-data
+                                       (remove #(= (nth % 0) (nth % 3)))
+                                       (map #(subvec % 0 3))))]
+     (testing "Schema transaction"
+       (is (= #{[1 :db/index true]
+                [1 :db/unique :db.unique/identity]
+                [1 :db/valueType :db.type/string]
+                [1 :db/cardinality :db.cardinality/one]
+                [1 :db/ident :name]
+                [2 :db/valueType :db.type/ref]
+                [2 :db/cardinality :db.cardinality/many]
+                [2 :db/ident :parents]
+                [3 :db/valueType :db.type/long]
+                [3 :db/cardinality :db.cardinality/one]
+                [3 :db/ident :age]}
+              (into #{} (cond->> (trim-result (transact-request-wrapper {:tx-data schema}))
+                          json-ret? (map #(xf-datom-vec % false)))))))
+     (testing "Transact new entity as map"
+       (is (= #{[4 :age 20]
+                [4 :name "Alice"]}
+              (into #{} (cond->> (trim-result (transact-request-wrapper {:tx-data [{:name "Alice" :age  20}]}))
+                          json-ret? (map #(xf-datom-vec % false)))))))
+     (testing "Transact new entity as vector"
+       (is (= #{[5 :age 21]
+                [5 :name "Bob"]}
+              (into #{} (cond->> (trim-result (transact-request-wrapper {:tx-data [[:db/add -1 :name "Bob"]
+                                                                                   [:db/add -1 :age 21]]}))
+                          json-ret? (map #(xf-datom-vec % false)))))))
+     (testing "Transact new entity as map with lookup ref for reference attribute"
+       (is (= #{[6 :age 5]
+                [6 :name "Chris"]
+                [6 :parents 4]}
+              (into #{} (cond->> (trim-result (transact-request-wrapper
+                                               {:tx-data [{:name "Chris" :age 5 :parents [:name "Alice"]}]}))
+                          json-ret? (map #(xf-datom-vec % false)))))))
+     (testing "Add reference attribute to existing entity with lookup refs"
+       (is (= #{[6 :parents 5]}
+              (into #{} (cond->> (trim-result (transact-request-wrapper
+                                               {:tx-data [[:db/add [:name "Chris"] :parents [:name "Bob"]]]}))
+                          json-ret? (map #(xf-datom-vec % false)))))))
+     (testing "Retract one value of a cardinality-many attribute"
+       (compare-retract-attr (transact-request-wrapper {:tx-data [[:db/retract 6 :parents 5]]})
+                             #{[6 :parents 5]}))
+     (testing "Retract a cardinality-many attribute"
+       (compare-retract-attr (transact-request-wrapper {:tx-data [[:db.fn/retractAttribute 6 :parents]]})
+                             #{[6 :parents 4]}))
+     (testing "Retract an entity"
+       (compare-retract-attr (transact-request-wrapper {:tx-data [[:db/retractEntity 6]]})
+                             #{[6 :name "Chris"]
+                               [6 :age 5]}))
+     (testing "Transact new entity as vector with reference attribute values"
+       (is (= #{[7 :age 5]
+                [7 :name "Chris"]
+                [7 :parents 4]
+                [7 :parents 5]}
+              (into #{} (cond->> (trim-result
+                                  (transact-request-wrapper
+                                   {:tx-data [[:db/add -1 :name "Chris"]
+                                              [:db/add -1 :age 5]
+                                              [:db/add -1 :parents 4]
+                                              [:db/add -1 :parents 5]]}))
+                          json-ret? (map #(xf-datom-vec % false))))))))))
+
+(deftest transact-test-edn
+  (transact-test))
+
+(deftest transact-test-json
+  (transact-test true true))
+
+(defn GET-db-should-return-database-data
+  ([] (GET-db-should-return-database-data false))
+  ([json?]
+   (testing "schemaless database should return meta, config, hash, max-tx, and max-eid"
+     (let [{:keys [meta] :as db-data} (api-request :get "/db" nil sessions-db-header false json?)]
+       (is (= #{:datahike/version
+                :konserve/version
+                :hitchhiker.tree/version
+                :datahike/id
+                :datahike/created-at}
+              (set (keys meta))))
+       (is (= {:config  {:store              {:backend :mem
+                                              :id      "sessions"}
+                         :schema-flexibility :read
+                         :attribute-refs?    false
+                         :keep-history?      false
+                         :name               "sessions"
+                         :cache-size         100000,
+                         :index              :datahike.index/hitchhiker-tree
+                         :index-config       {:index-b-factor       17
+                                              :index-log-size       283
+                                              :index-data-node-size 300}}
+               :hash    0
+               :max-tx  536870912
+               :max-eid 0}
+              (dissoc db-data :meta)))))
+   (testing "schemaful database should return meta, config, hash, max-tx, and max-eid"
+     (let [{:keys [meta] :as db-data} (api-request :get "/db" nil users-db-header false json?)]
+       (is (= #{:datahike/version
+                :konserve/version
+                :hitchhiker.tree/version
+                :datahike/id
+                :datahike/created-at}
+              (set (keys meta))))
+       (is (= {:config  {:store              {:backend :file
+                                              :path    "/tmp/dh-file"}
+                         :name               "users"
+                         :keep-history?      true
+                         :attribute-refs?    false
+                         :schema-flexibility :write
+                         :cache-size         100000
+                         :index :datahike.index/hitchhiker-tree
+                         :index-config       {:index-b-factor       17
+                                              :index-log-size       283
+                                              :index-data-node-size 300}}
+               :hash    0
+               :max-tx 536870912
+               :max-eid 0}
+              (dissoc db-data :meta)))))))
+
+(deftest GET-db-should-return-database-data-edn
+  (GET-db-should-return-database-data))
+
+(deftest GET-db-should-return-database-data-json
+  (GET-db-should-return-database-data true))
 
 (deftest q-test
-  (testing "Executes a datalog query"
-    (add-test-data)
-    (is (= "Alice"
-           (second (first (api-request :post "/q"
-                                       {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
-                                        :args ["Alice"]}
-                                       {:headers {:authorization "token neverusethisaspassword"
-                                                  :db-name "sessions"}})))))))
+   (let [query {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
+                :args ["Alice"]}]
+     (testing "Executes a datalog query"
+       (add-test-data)
+       (is (= "Alice"
+              (second (first (api-request :post "/q" query sessions-db-header))))))))
 
 (deftest pull-test
   (testing "Fetches data from database using recursive declarative description."

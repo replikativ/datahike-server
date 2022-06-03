@@ -225,14 +225,12 @@
                :muuntaja   m/instance
                :middleware [swagger/swagger-feature
                             parameters/parameters-middleware
-                            muuntaja/format-negotiate-middleware
-                            muuntaja/format-response-middleware
+                            muuntaja/format-middleware
                             ;;  exception/exception-middleware
                             middleware/wrap-fallback-exception
                             middleware/wrap-server-exception
                             middleware/wrap-db-connection
                             middleware/wrap-db-history
-                            muuntaja/format-request-middleware
                             coercion/coerce-response-middleware
                             coercion/coerce-request-middleware
                             multipart/multipart-middleware]}})
