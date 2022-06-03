@@ -1,5 +1,6 @@
 (ns datahike-server.json-utils
   (:require [clojure.walk :refer [prewalk]]
+            [datahike.datom]  ;; TODO temporary workaround for requiring schema: remove
             [datahike.schema :as s]))
 
 (def edn-fmt "application/edn")
