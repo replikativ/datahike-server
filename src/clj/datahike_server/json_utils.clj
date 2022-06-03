@@ -60,7 +60,7 @@
         ref-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/ref} conn-schema))
         long-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/long} conn-schema))
         kw-valued-attrs (clojure.set/union keyword-valued-schema-attrs (filter-kw-attrs conn-schema))
-        sym-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/symbol} conn-schema))
+        sym-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/symbol} conn-schema))]
     (map #(cond
             (map? %) (xf-tx-data-map ref-valued-attrs long-valued-attrs kw-valued-attrs sym-valued-attrs %)
             (vector? %) (xf-tx-data-vec ref-valued-attrs long-valued-attrs kw-valued-attrs sym-valued-attrs %)
