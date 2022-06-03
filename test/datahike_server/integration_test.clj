@@ -273,12 +273,12 @@
   (GET-db-should-return-database-data true))
 
 (deftest q-test
-   (let [query {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
-                :args ["Alice"]}]
-     (testing "Executes a datalog query"
-       (add-test-data)
-       (is (= "Alice"
-              (second (first (api-request :post "/q" query sessions-db-header))))))))
+  (let [query {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
+               :args ["Alice"]}]
+    (testing "Executes a datalog query"
+      (add-test-data)
+      (is (= "Alice"
+             (second (first (api-request :post "/q" query sessions-db-header))))))))
 
 (deftest pull-test
   (testing "Fetches data from database using recursive declarative description."
