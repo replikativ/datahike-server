@@ -58,13 +58,13 @@
 
 (defn xf-data-for-tx [tx-data conn]
   (let [conn-schema (:schema @conn)
-        ref-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/ref} conn-schema))
-        long-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/long} conn-schema))
+        ref-valued-attrs (filter-value-type-attrs #{:db.type/ref} conn-schema)
+        long-valued-attrs (filter-value-type-attrs #{:db.type/long} conn-schema)
         kw-valued-attrs (clojure.set/union keyword-valued-schema-attrs (filter-kw-attrs conn-schema))
-        sym-valued-attrs (into #{} (filter-value-type-attrs #{:db.type/symbol} conn-schema))]
-    (map #(cond
-            (map? %) (xf-tx-data-map ref-valued-attrs long-valued-attrs kw-valued-attrs sym-valued-attrs %)
-            (vector? %) (xf-tx-data-vec ref-valued-attrs long-valued-attrs kw-valued-attrs sym-valued-attrs %)
-            :else (throw (ex-info "Only maps and vectors allowed in :tx-data and :tx-meta"
-                                  {:event :handlers/transact :data tx-data})))
+        sym-valued-attrs (filter-value-type-attrs #{:db.type/symbol} conn-schema)]
+    (map #(let [xf-fn (cond (map? %) xf-tx-data-map
+                            (vector? %) xf-tx-data-vec
+                            :else (throw (ex-info "Only maps and vectors allowed in :tx-data and :tx-meta"
+                                                  {:event :handlers/transact :data tx-data})))]
+            (xf-fn ref-valued-attrs long-valued-attrs kw-valued-attrs sym-valued-attrs %))
          tx-data)))
