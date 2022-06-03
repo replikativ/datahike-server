@@ -54,8 +54,7 @@
                :attribute-refs? false,
                :cache-size 100000,
                :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}
-                                        ;{:store {:path "/tmp/dh-file", :backend :file},
-              {:store {:path "tmp/dh-file", :backend :file},
+              {:store {:path "/tmp/dh-file", :backend :file},
                :keep-history? true,
                :schema-flexibility :write,
                :name "users",
