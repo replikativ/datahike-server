@@ -1,28 +1,27 @@
 (ns datahike-server.server
-  (:require [datahike-server.handlers :as h]
-            [datahike-server.config :refer [config]]
-            [datahike-server.database :refer [conns]]
-            [datahike-server.middleware :as middleware]
-            [datahike.api :as d]
-            [reitit.ring :as ring]
-            [reitit.coercion.spec]
-            [reitit.swagger :as swagger]
-            [reitit.swagger-ui :as swagger-ui]
-            [reitit.ring.coercion :as coercion]
-            [reitit.dev.pretty :as pretty]
-            [reitit.ring.middleware.muuntaja :as muuntaja]
-            [reitit.ring.middleware.exception :as exception]
-            [reitit.ring.middleware.multipart :as multipart]
-            [reitit.ring.middleware.parameters :as parameters]
-            [reitit.ring.middleware.dev :as dev]
-            [ring.middleware.cors :refer [wrap-cors]]
-            [muuntaja.core :as m]
-            [clojure.spec.alpha :as s]
-            [taoensso.timbre :as log]
-            [mount.core :refer [defstate]]
-            [ring.adapter.jetty :refer [run-jetty]]
-            [clojure.pprint :refer [pprint]]
-            [spec-tools.core :as st]))
+  (:require
+   [datahike-server.handlers :as h]
+   [datahike-server.config :refer [config]]
+   [datahike-server.database :refer [conns]]
+   [datahike-server.middleware :as middleware]
+   [reitit.ring :as ring]
+   [reitit.coercion.spec]
+   [reitit.swagger :as swagger]
+   [reitit.swagger-ui :as swagger-ui]
+   [reitit.ring.coercion :as coercion]
+   [reitit.dev.pretty :as pretty]
+   [reitit.ring.middleware.muuntaja :as muuntaja]
+   [reitit.ring.middleware.exception :as exception]
+   [reitit.ring.middleware.multipart :as multipart]
+   [reitit.ring.middleware.parameters :as parameters]
+   [ring.middleware.cors :refer [wrap-cors]]
+   [muuntaja.core :as m]
+   [clojure.spec.alpha :as s]
+   [taoensso.timbre :as log]
+   [mount.core :refer [defstate]]
+   [ring.adapter.jetty :refer [run-jetty]]
+   [clojure.pprint :refer [pprint]]
+   [spec-tools.core :as st]))
 
 (defn long? [x]
   (instance? java.lang.Long x))
@@ -121,7 +120,7 @@
                :summary "Get current database as a hash."
                :parameters {:header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
-               :handler    h/get-db}}]
+               :handler    h/get-db-hash}}]
 
    ["/q"
     {:swagger {:tags ["API"]}
@@ -206,6 +205,7 @@
                :parameters {:header ::db-header}
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/reverse-schema}}]
+
    ["/load-entities"
     {:swagger {:tags ["API"]}
      :post {:operationId "LoadEntities"
@@ -216,30 +216,22 @@
             :middleware [middleware/token-auth middleware/auth]
             :handler h/load-entities}}]])
 
-(defn wrap-db-connection [handler]
-  (fn [request]
-    (if-let [db-name (get-in request [:headers "db-name"])]
-      (if-let [conn (conns db-name)]
-        (if-let [tx (get-in request [:headers "db-tx"])]
-          (if-let [db (d/as-of @conn (Integer/parseInt tx))]
-            (handler (assoc request :db db :conn conn))
-            (handler request))
-          (handler (assoc request :conn conn)))
-        (handler request))
-      (handler request))))
-
 (def route-opts
   {;; :reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
    ;; :validate spec/validate ;; enable spec validation for route data
-   ;;:reitit.spec/wrap spell/closed ;; strict top-level validation
-   :exception pretty/exception
+   ;; :reitit.spec/wrap spell/closed ;; strict top-level validation
+   ; :exception pretty/exception
    :data      {:coercion   reitit.coercion.spec/coercion
                :muuntaja   m/instance
                :middleware [swagger/swagger-feature
                             parameters/parameters-middleware
                             muuntaja/format-negotiate-middleware
                             muuntaja/format-response-middleware
-                            exception/exception-middleware
+                            ;;  exception/exception-middleware
+                            middleware/wrap-fallback-exception
+                            middleware/wrap-server-exception
+                            middleware/wrap-db-connection
+                            middleware/wrap-db-history
                             muuntaja/format-request-middleware
                             coercion/coerce-response-middleware
                             coercion/coerce-request-middleware
@@ -254,7 +246,6 @@
           :config {:validatorUrl     nil
                    :operationsSorter "alpha"}})
         (ring/create-default-handler)))
-      wrap-db-connection
       (wrap-cors :access-control-allow-origin [#"http://localhost" #"http://localhost:8080" #"http://localhost:4000"]
                  :access-control-allow-methods [:get :put :post :delete])))
 
@@ -266,5 +257,3 @@
            (log/debug "Starting server")
            (start-server config))
   :stop (.stop server))
-
-(comment)
