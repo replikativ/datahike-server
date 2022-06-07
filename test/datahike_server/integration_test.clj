@@ -88,7 +88,7 @@
        (is (= {:tx-data [[1 :foo 1 536870913 true]], :tempids #:db{:current-tx 536870913}, :tx-meta []}
               (if json-ret?
                 ; TODO use json-utils instead?
-                (update result :tx-data utils/keywordise-strs)
+                (update result :tx-data utils/keywordize-strs)
                 result)))))))
 
 (deftest transact-test-without-schema-edn

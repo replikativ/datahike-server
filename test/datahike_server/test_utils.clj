@@ -1,6 +1,6 @@
 (ns datahike-server.test-utils
   (:require [clojure.edn :as edn]
-            [clojure.walk :refer [prewalk]]
+            [clojure.walk :as walk]
             [datahike-server.database :refer [cleanup-databases]]
             [datahike-server.core :refer [start-all stop-all]]
             [datahike-server.json-utils :refer [json-fmt edn-fmt]]
@@ -8,13 +8,13 @@
             [muuntaja.core :as m]))
 
 ; TODO check against json-utils and consolidate or remove if similar/same
-(defn keywordise-if-str [v]
+(defn keywordize-if-str [v]
   (if (string? v) (keyword v) v))
 
-(defn keywordise-strs [c]
+(defn keywordize-strs [c]
   (mapv #(if (map? %)
-           (into {} (map (fn [[k v]] [k (prewalk keywordise-if-str v)])) %)
-           (prewalk keywordise-if-str %))
+           (into {} (map (fn [[k v]] [k (walk/prewalk keywordize-if-str v)])) %)
+           (walk/prewalk keywordize-if-str %))
         c))
 
 (defn parse-body
