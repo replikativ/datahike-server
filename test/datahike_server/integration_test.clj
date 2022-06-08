@@ -12,16 +12,20 @@
 (def ^:private users-db-header
   (assoc-in basic-header [:headers :db-name] "users"))
 
+(defn- transact-request
+  ([body params] (transact-request body params false false))
+  ([body params json-req? json-ret?] (api-request :post "/transact" body params json-req? json-ret?)))
+
 (defn add-test-data []
   (let [test-data [{:name "Alice" :age 20} {:name "Bob" :age 21}]]
-    (api-request :post "/transact" {:tx-data test-data} sessions-db-header)))
+    (transact-request {:tx-data test-data} sessions-db-header)))
 
 (defn add-test-schema []
   (let [test-schema [{:db/ident :name
                       :db/valueType :db.type/string
                       :db/unique :db.unique/identity
                       :db/cardinality :db.cardinality/one}]]
-    (api-request :post "/transact" {:tx-data test-schema} users-db-header)))
+    (transact-request {:tx-data test-schema} users-db-header)))
 
 (use-fixtures :each setup-db)
 
@@ -75,9 +79,6 @@
 
 (deftest databases-test-json
   (databases-test true))
-
-(defn- transact-request [body params json-req? json-ret?]
-  (api-request :post "/transact" body params json-req? json-ret?))
 
 (defn transact-test-without-schema
   ([] (transact-test-without-schema false false))
