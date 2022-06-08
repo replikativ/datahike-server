@@ -272,13 +272,38 @@
 (deftest GET-db-should-return-database-data-json
   (GET-db-should-return-database-data true))
 
-(deftest q-test
-  (let [query {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
-               :args ["Alice"]}]
-    (testing "Executes a datalog query"
-      (add-test-data)
-      (is (= "Alice"
-             (second (first (api-request :post "/q" query sessions-db-header))))))))
+(defn q-test
+  ([] (q-test false false))
+  ([json-req? json-ret?]
+   (let [ev-q {:query '[:find ?e ?n :in $ ?n :where [?e :name ?n]]
+               :args ["Alice"]}
+         eav-q {:query '[:find ?e ?n ?a ?v :in $ ?n :where [?e :name ?n] [?e ?a ?v]]
+                :args ["Alice"]}
+         q '[:find ?e :where ([?e :name "::not-a-keyword"]
+                              [?e :name "$$not-a-symbol"]
+                              [?e :name "???"])]
+         or-sym (if json-req? '%or 'or)
+         special-q {:query (update q 3 #(cons or-sym %))}]
+     (add-test-data)
+     (testing "Simple datalog query for entity ID and person name"
+       (is (= [1 "Alice"]
+              (first (api-request :post "/q" ev-q sessions-db-header json-req? json-ret? true)))))
+     (testing "Datalog query for entity ID, attribute, and person name"
+       (is (contains?
+                   (set (api-request :post "/q" eav-q sessions-db-header json-req? json-ret? true))
+                   [1 "Alice" (if json-ret? "age" :age) 20])))  ; Should JSON queries and query results be symmetric, i.e. both look like Clojure?
+     (testing "Testing query containing symbol, for strings containing special characters"
+       (transact-request {:tx-data [{:name "::not-a-keyword" :age 1}
+                                    {:name "$$not-a-symbol" :age 0}
+                                    {:name "???" :age 2}]} sessions-db-header)
+       (is (= #{[3] [4] [5]}
+              (set (api-request :post "/q" special-q sessions-db-header json-req? json-ret? true))))))))
+
+(deftest q-test-edn
+  (q-test))
+
+(deftest q-test-json
+  (q-test true true))
 
 (deftest pull-test
   (testing "Fetches data from database using recursive declarative description."

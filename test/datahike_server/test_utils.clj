@@ -5,7 +5,8 @@
             [datahike-server.core :refer [start-all stop-all]]
             [datahike-server.json-utils :refer [json-fmt edn-fmt]]
             [clj-http.client :as client]
-            [muuntaja.core :as m]))
+            [muuntaja.core :as m]
+            [jsonista.core :as json]))
 
 ; TODO check against json-utils and consolidate or remove if similar/same
 (defn keywordize-if-str [v]
@@ -28,13 +29,21 @@
 
 (defn api-request
   ([method url]
-   (api-request method url nil nil false false))
+   (api-request method url nil nil false false false))
   ([method url data]
-   (api-request method url data nil false false))
+   (api-request method url data nil false false false))
   ([method url data opts]
-   (api-request method url data opts false false))
+   (api-request method url data opts false false false))
   ([method url data opts json-req? json-ret?]
-   (let [encode (if json-req? (partial m/encode json-fmt) str)]
+   (api-request method url data opts json-req? json-ret? false))
+  ([method url data opts json-req? json-ret? keep-clj-syntax?]
+   (let [encode (if json-req?   ; TODO: move to json-utils?
+                  (if keep-clj-syntax?
+                    (fn [data] (-> (walk/postwalk #(if (coll? %) % (str %)) data)
+                                   (#(if (map? %) (reduce-kv (fn [m k v] (assoc m (subs k 1) v)) {} %) %))
+                                   (json/write-value-as-string)))
+                    (partial m/encode json-fmt))
+                  str)]
      (-> (client/request (merge {:url (str "http://localhost:3333" url)
                                  :method method
                                  :throw-exceptions? false

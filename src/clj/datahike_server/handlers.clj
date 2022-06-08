@@ -3,7 +3,8 @@
             [datahike.api :as d]
             [datahike.core :as c]
             [datahike-server.json-utils :as ju]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.walk :as walk]))
 
 (defn success
   ([] {:status 200})
@@ -35,10 +36,43 @@
         cleanup-result
         success)))
 
-(defn q [{{:keys [body]} :parameters conn :conn db :db}]
-  (let [args {:query (:query body [])
-              :args (concat [(or db @conn)] (:args body []))
-              :limit (:limit body -1)
+; TODO: Move to json-utils?
+(defn- symbol-or-string [c1 s]
+  (if (and (> (count s) 1) (= c1 (subs s 1 2)))
+    (subs s 1)
+    (symbol s)))
+
+; TODO: Move to json-utils?
+(defn- clojurize-string [s]
+  (case (subs s 0 1)
+    ":" (if (> (count s) 1)
+          (cond-> (subs s 1)
+            (not= ":" (subs s 1 2)) keyword)
+          ; Does this error work?
+          (throw (ex-info "Illegal use of \":\""
+                          {:event :handlers/q, :error :datahike/syntax, :data s})))
+    "?" (symbol-or-string "?" s)
+    "*" (if (= (count s) 1)
+          (symbol s)
+          s)  ; Or should this be escaped by doubling, for consistency with other special chars?
+    "$" (symbol-or-string "$" s)
+    "%" (if (> (count s) 1)
+          (cond-> (subs s 1)
+            (not= "%" (subs s 1 2)) symbol)
+          (symbol s))
+    "n" (if (= s "nil") (symbol s) s)
+    s))
+
+; TODO: Move to json-utils?
+(defn- clojurize [c]
+  (walk/postwalk #(if (string? %) (clojurize-string %) %) c))
+
+(defn q [{{:keys [body]} :parameters conn :conn db :db content-type :content-type}]
+  (let [args {:query  (cond-> (:query body [])
+                        (= content-type ju/json-fmt) clojurize)
+              :args   (cond-> (concat [(or db @conn)] (:args body []))
+                        (= content-type ju/json-fmt) clojurize)
+              :limit  (:limit body -1)
               :offset (:offset body 0)}]
     (log/info "Querying with arguments: " (str args))
     (success (into [] (d/q args)))))
