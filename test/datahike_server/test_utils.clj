@@ -1,12 +1,24 @@
 (ns datahike-server.test-utils
   (:require [clojure.edn :as edn]
             [clojure.walk :as walk]
-            [datahike-server.database :refer [cleanup-databases]]
-            [datahike-server.core :refer [start-all stop-all]]
+            [datahike-server.config] ; needed just for mount/start and mount/start-with-states
             [datahike-server.json-utils :refer [json-fmt edn-fmt]]
+            [datahike-server.database :as db]
+            [datahike-server.server] ; needed just for mount/start and mount/start-with-states
             [clj-http.client :as client]
+            [mount.core :as mount]
             [muuntaja.core :as m]
             [jsonista.core :as json]))
+
+(defn setup-db
+  ([f] (setup-db f nil))
+  ([f alt-config]
+   (if (some? alt-config)
+     (mount/start-with-states {#'datahike-server.config/config alt-config})
+     (mount/start))
+   (db/cleanup-databases)
+   (f)
+   (mount/stop)))
 
 ; TODO check against json-utils and consolidate or remove if similar/same
 (defn keywordize-if-str [v]
@@ -53,9 +65,3 @@
                                   {:body (encode data)})
                                 opts))
          (parse-body json-ret?)))))
-
-(defn setup-db [f]
-  (start-all)
-  (cleanup-databases)
-  (f)
-  (stop-all))
