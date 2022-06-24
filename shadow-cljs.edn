@@ -3,11 +3,11 @@
  [ "src/cljs"
    "src/cljs/test"]
 
- :dependencies [[reagent "0.8.1" exclusions [cljsjs/react cljsjs/react-dom]]
+ :dependencies [[reagent "1.1.1" exclusions [cljsjs/react cljsjs/react-dom]]
                 [clj-commons/secretary "1.2.4"]
-                [venantius/accountant "0.2.4"]
-                [com.cognitect/transit-cljs "0.8.256"]
-                [cljs-ajax "0.8.0"]]
+                [venantius/accountant "0.2.5"]
+                [com.cognitect/transit-cljs "0.8.280"]
+                [cljs-ajax "0.8.4"]]
 
  :builds
  {:app {:target :browser
