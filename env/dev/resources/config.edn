@@ -1,0 +1,15 @@
+{:databases [{:store {:backend :mem
+                      :id "sessions"}
+              :schema-flexibility :read
+              :keep-history? false
+              :name "sessions"}
+             {:store {:backend :file
+                      :path "/tmp/dh-file"}
+              :name "users"
+              :keep-history? true
+              :schema-flexibility :write}]
+ :server {:port  4444
+          :join? false
+          :loglevel :info
+          :dev-mode true
+          :token :securerandompassword}}

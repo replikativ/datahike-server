@@ -1,9 +1,9 @@
-{:deps {org.clojure/clojure     {:mvn/version "1.11.0"}
-        io.replikativ/datahike  {:mvn/version "0.4.1490"}
-        buddy/buddy-auth        {:mvn/version "3.0.1"}
+{:deps {org.clojure/clojure     {:mvn/version "1.11.1"}
+        io.replikativ/datahike  {:mvn/version "0.5.1506"}
+        buddy/buddy-auth        {:mvn/version "3.0.323"}
         ring/ring-core          {:mvn/version "1.9.5"}
         ring/ring-jetty-adapter {:mvn/version "1.9.5"}
-        metosin/reitit          {:mvn/version "0.5.17"}
+        metosin/reitit          {:mvn/version "0.5.18"}
         ring-cors/ring-cors     {:mvn/version "0.1.13"}
         com.taoensso/timbre     {:mvn/version "5.2.1"}
         environ/environ         {:mvn/version "1.2.0"}
@@ -14,30 +14,34 @@
 
  :aliases {:kaocha {:extra-paths ["test"]
                     :extra-deps  {clj-http/clj-http   {:mvn/version "3.12.3"}
-                                  lambdaisland/kaocha {:mvn/version "1.64.1010"}}
+                                  lambdaisland/kaocha {:mvn/version "1.68.1059"}}
                     :main-opts   ["-m" "kaocha.runner"]
                     :exec-fn     kaocha.runner/exec-fn
                     :exec-args   {}}
 
-           :test {:extra-paths        ["test"]
-                  :extra-deps         {clj-http/clj-http      {:mvn/version "3.12.3"}
-                                       org.clojure/test.check {:mvn/version "1.1.1"}
-                                       lambdaisland/kaocha {:mvn/version "1.64.1010"}}}
+           :dev {:extra-paths ["env/dev"]
+                 :extra-deps  {org.clojure/tools.namespace {:mvn/version "1.2.0"}
+                               clj-http/clj-http           {:mvn/version "3.12.3"}}}
 
-           :repl {:extra-deps {cider/cider-nrepl           {:mvn/version "0.27.4"}
+           :test {:extra-paths ["test"]
+                  :extra-deps  {clj-http/clj-http      {:mvn/version "3.12.3"}
+                                org.clojure/test.check {:mvn/version "1.1.1"}
+                                lambdaisland/kaocha    {:mvn/version "1.68.1059"}}}
+
+           :repl {:extra-deps {cider/cider-nrepl           {:mvn/version "0.28.5"}
                                nrepl/nrepl                 {:mvn/version "0.9.0"}
-                               org.clojure/tools.namespace {:mvn/version "1.2.0"}}
+                               org.clojure/tools.namespace {:mvn/version "1.3.0"}}
                   :main-opts  ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware]"]}
 
            :ffix {:extra-deps {cljfmt/cljfmt {:mvn/version "0.8.0"}}
-                  :main-opts ["-m" "cljfmt.main" "fix"]}
+                  :main-opts  ["-m" "cljfmt.main" "fix"]}
 
-           :build {:deps       {io.github.clojure/tools.build   {:git/tag "v0.8.1" :git/sha "7d40500"}
+           :build {:deps       {io.github.clojure/tools.build   {:git/tag "v0.8.2" :git/sha "ba1a2bf"}
                                 slipset/deps-deploy             {:mvn/version "0.2.0"}
                                 borkdude/gh-release-artifact    {:git/url "https://github.com/borkdude/gh-release-artifact"
-                                                                 :sha     "a83ee8da47d56a80b6380cbb6b4b9274048067bd"}
+                                                                 :sha     "cf082df46a648178d1904e9cbcb787d8136a35c6"}
                                 babashka/babashka.curl          {:mvn/version "0.1.2"}
-                                babashka/fs                     {:mvn/version "0.1.4"}
-                                cheshire/cheshire               {:mvn/version "5.10.2"}
+                                babashka/fs                     {:mvn/version "0.1.6"}
+                                cheshire/cheshire               {:mvn/version "5.11.0"}
                                 com.google.cloud.tools/jib-core {:mvn/version "0.21.0"}}
                    :ns-default build}}}

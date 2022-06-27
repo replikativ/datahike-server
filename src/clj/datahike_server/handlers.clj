@@ -14,8 +14,8 @@
         databases (into [] xf (-> conns vals))]
     (success {:databases databases})))
 
-(defn get-db-hash [{:keys [conn]}]
-  (success {:hash (hash @conn)}))
+(defn get-db [{:keys [conn]}]
+  (success (select-keys @conn [:meta :config :max-eid :max-tx :hash])))
 
 (defn cleanup-result [result]
   (-> result
