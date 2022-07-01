@@ -1,8 +1,7 @@
 (ns datahike-server.server
   (:require
    [datahike-server.handlers :as h]
-   [datahike-server.config :refer [config]]
-   [datahike-server.database :refer [conns]]
+   [datahike-server.config :as config]
    [datahike-server.middleware :as middleware]
    [reitit.ring :as ring]
    [reitit.coercion.spec]
@@ -10,6 +9,7 @@
    [reitit.swagger-ui :as swagger-ui]
    [reitit.ring.coercion :as coercion]
    [reitit.dev.pretty :as pretty]
+   [reitit.ring.middleware.dev :as dev]
    [reitit.ring.middleware.muuntaja :as muuntaja]
    [reitit.ring.middleware.exception :as exception]
    [reitit.ring.middleware.multipart :as multipart]
@@ -22,9 +22,6 @@
    [ring.adapter.jetty :refer [run-jetty]]
    [clojure.pprint :refer [pprint]]
    [spec-tools.core :as st]))
-
-(defn long? [x]
-  (instance? java.lang.Long x))
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
@@ -45,11 +42,11 @@
 (s/def ::eids (s/coll-of ::eid))
 (s/def ::pull-many-request (s/keys :req-un [::selector ::eids]))
 
-(s/def ::index #{:eavt :aevt :avet})
+(s/def ::index #{:eavt :aevt :avet "eavt" "aevt" "avet"})
 (s/def ::components (s/coll-of any?))
 (s/def ::datoms-request (s/keys :req-un [::index] :opt-un [::components]))
 
-(s/def ::attr keyword?)
+(s/def ::attr #(or (keyword? %) (string? %)))
 (s/def ::entity-request (s/keys :req-un [::eid] :opt-un [::attr]))
 
 (s/def ::db-name string?)
@@ -59,14 +56,17 @@
 
 (s/def ::conn-header (s/keys :req-un [::db-name]))
 
-(s/def ::db-hash number?)
-
 (s/def ::db-tx int?)
 (s/def ::db-header (s/keys :req-un [::db-name]
                            :opt-un [::db-tx]))
 (s/def ::params map?)
 
-(s/def :entity/vector (s/cat :e long? :a keyword? :v any? :t long? :added boolean?))
+(s/def ::attrid #(or (keyword? %) (string? %)))
+(s/def ::start any?)
+(s/def ::end any?)
+(s/def ::index-range (s/keys :req-un [::attrid] :opt-un [::start ::end]))
+
+(s/def :entity/vector (s/cat :e int? :a #(or (keyword? %) (string? %) (int? %)) :v any? :t int? :added boolean?))
 (s/def ::entities (s/coll-of :entity/vector))
 (s/def ::imported-entities (s/keys :req-un [::entities]))
 
@@ -206,10 +206,20 @@
                :middleware [middleware/token-auth middleware/auth]
                :handler    h/reverse-schema}}]
 
+   ["/index-range"
+    {:swagger {:tags ["API"]}
+     :get {:operationId "IndexRange"
+           :summary     "Fetches range of AVET index"
+           :parameters  {:header ::db-header
+                         :body (st/spec {:spec ::index-range
+                                         :name "index-range"})}
+           :middleware  [middleware/token-auth middleware/auth]
+           :handler     h/index-range}}]
+
    ["/load-entities"
     {:swagger {:tags ["API"]}
      :post {:operationId "LoadEntities"
-            :summery "Load entities directly"
+            :summary "Load entities directly"
             :parameters {:header ::db-header
                          :body (st/spec {:spec ::imported-entities
                                          :name "imported-entities"})}
@@ -224,8 +234,11 @@
    :data      {:coercion   reitit.coercion.spec/coercion
                :muuntaja   m/instance
                :middleware [swagger/swagger-feature
+                            middleware/encode-plain-value
                             parameters/parameters-middleware
                             muuntaja/format-middleware
+                            middleware/tag-sets
+                            middleware/fix-keywordized-coll-keys
                             ;;  exception/exception-middleware
                             middleware/wrap-fallback-exception
                             middleware/wrap-server-exception
@@ -253,5 +266,5 @@
 (defstate server
   :start (do
            (log/debug "Starting server")
-           (start-server config))
+           (start-server config/config))
   :stop (.stop server))
