@@ -55,7 +55,7 @@
                   (if keep-clj-syntax?
                     (fn [data]
                       (->> (to-json-recursive data)
-                          (m/encode ju/json-fmt)))
+                           (m/encode ju/json-fmt)))
                     (partial m/encode ju/json-fmt))
                   str)]
      (-> (client/request (merge {:url (str "http://localhost:3333" url)
