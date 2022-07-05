@@ -564,7 +564,7 @@
   ([] (tempid-test false))
   ([json?]
    (testing "/tempid: allocates and returns an unique temporary id."
-     (let [result (api-request :get "/tempid" {} (get-test-header "schema-on-read") json? json?)]
+     (let [result (api-request :get "/tempid" nil (get-test-header "schema-on-read") json? json?)]
        (is (number? (:tempid result)))))))
 
 (deftest tempid-test-edn
