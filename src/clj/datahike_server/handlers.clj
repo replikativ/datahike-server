@@ -3,6 +3,7 @@
             [datahike.api :as d]
             [datahike.core :as c]
             [datahike-server.json-utils :as ju]
+            [hashp.core]
             [taoensso.timbre :as log]
             [clojure.walk :as walk]))
 
@@ -81,11 +82,11 @@
   (let [db (or db @conn)
         e (if (= content-type ju/json-fmt)
             (ju/handle-id-or-av-pair eid (ju/get-valtype-attrs-map (.-schema db)) db)
-            eid)]
-    (if attr
-      (success (get (d/entity db e) (keyword attr)))
-      (success (->> (c/touch (d/entity db e))
-                    (into {}))))))
+            eid)
+        entity (d/entity db e)]
+    (and entity (if attr
+                  (success (get entity (keyword attr)))
+                  (success (into {} (c/touch entity)))))))
 
 (defn schema [{:keys [conn]}]
   (success (d/schema @conn)))
