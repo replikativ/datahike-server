@@ -3,7 +3,6 @@
             [datahike.api :as d]
             [datahike.core :as c]
             [datahike-server.json-utils :as ju]
-            [hashp.core]
             [taoensso.timbre :as log]
             [clojure.walk :as walk]))
 
