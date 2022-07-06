@@ -1,19 +1,19 @@
 
 # Table of Contents
 
-1.  [Introduction](#org4663b3a)
-2.  [Requests](#org2c3b0e9)
-    1.  [No arguments required](#org86fa03c)
-    2.  [Out-of-the-box JSON](#org9f4cce9)
-    3.  [Clojure / Datalog required](#org72dbe6b)
-        1.  [Special characters and strings](#orgaaeb829)
-        2.  [Examples](#orge3401a3)
-    4.  [Hybrid](#org0023b94)
-3.  [Responses](#org5568f66)
-4.  [Limitations and future work](#orgf0ff09b)
+1.  [Introduction](#orgbdb3a1c)
+2.  [Requests](#orgc6486b7)
+    1.  [No arguments required](#org36e2e79)
+    2.  [Out-of-the-box JSON](#org3243ec0)
+    3.  [Clojure / Datalog required](#org79e9f72)
+        1.  [Special characters and strings](#org3b61963)
+        2.  [Examples](#orga2caf85)
+    4.  [Hybrid](#orgdc4c9fa)
+3.  [Responses](#org8389b6c)
+4.  [Limitations and future work](#org10b7278)
 
 
-<a id="org4663b3a"></a>
+<a id="orgbdb3a1c"></a>
 
 # Introduction
 
@@ -28,14 +28,14 @@ The &ldquo;advanced&rdquo; tier is written to support arbitrarily complex expres
 At the moment, most endpoints belong only to one or the other (or neither, if no arguments are required), as documented below. Endpoint functionality corresponds to that of the eponymous Datahike API function where one exists, which is generally the case. Information on functionality is provided here for exceptions; otherwise, please refer to [Datahike documentation](<https://cljdoc.org/d/io.replikativ/datahike/0.5.1506/api/datahike.api>) for further information.
 
 
-<a id="org2c3b0e9"></a>
+<a id="orgc6486b7"></a>
 
 # Requests
 
 The following section illustrates JSON data accepted by server API endpoints with side-by-side examples of equivalent JSON and EDN request data.
 
 
-<a id="org86fa03c"></a>
+<a id="org36e2e79"></a>
 
 ## No arguments required
 
@@ -49,7 +49,7 @@ Use `null` in all cases:
 -   `reverse-schema`
 
 
-<a id="org9f4cce9"></a>
+<a id="org3243ec0"></a>
 
 ## Out-of-the-box JSON
 
@@ -112,27 +112,27 @@ Use `null` in all cases:
         {"attrid": "db/ident", "start": "age", "end": "name"}
 
 
-<a id="org72dbe6b"></a>
+<a id="org79e9f72"></a>
 
 ## Clojure / Datalog required
 
 
-<a id="orgaaeb829"></a>
+<a id="org3b61963"></a>
 
 ### Special characters and strings
 
--   *:*: A single occurrence at the start of a string denotes a ****keyword****, e.g. &ldquo;:kw&rdquo; denotes `:kw`. To denote a string starting with `:`, escape with an extra occurrence, e.g. &ldquo;$$a" for "$a", and "$$$string&rdquo; for &ldquo;$$string&rdquo;. Note that a standalone occurrence, i.e. &ldquo;$&rdquo;, is illegal.
--   *&*: A single occurrence at the start of a string indicates that the *remaining characters* should be interpreted as a ****symbol****, e.g. &ldquo;&or&rdquo; denotes `or`, and &ldquo;&a-sym&rdquo; denotes `a-sym`. As with &ldquo;:&rdquo;, a standalone occurrence, i.e. &ldquo;&&rdquo;, is illegal; and to denote a string starting with `&`, escape with an extra occurrence, e.g. &ldquo;&&a&rdquo; for &ldquo;&a&rdquo;.
--   *?*, *$*: A single occurrence on its own or at the start of a string causes the *entire string* to be interpreted as a symbol, e.g. &ldquo;?n&rdquo; denotes `?n`, &ldquo;$&rdquo; `$`, and &ldquo;$db&rdquo; `$db`. Escape with an extra occurrence to denote a string starting with either of these characters, e.g. &ldquo;??qn&rdquo; for &ldquo;?qn&rdquo;.
--   *.*, *&#x2026;*: Interpreted as a symbol when used as-is. Does not require escaping, e.g. &ldquo;.hidden&rdquo; represents itself i.e. &ldquo;.hidden&rdquo;.
--   *+*, *-*, *\**, *\\/*, *\_*, *%*: As with `.` and `...`, used on their own to represent symbols, and don&rsquo;t require escaping.
--   *nil*: Represents `nil`.
--   *!list*: As the first element within a pair of square brackets, indicates that the remaining elements form a Clojure list, e.g. `["!list", 1, 2, "c"]` translates into `(1 2 "c")`.
+-   ***:***: A single occurrence at the start of a string denotes a **keyword**, e.g. &ldquo;:kw&rdquo; denotes `:kw`. To denote a string starting with `:`, escape with an extra occurrence, e.g. &ldquo;$$a&rdquo; for &ldquo;$a&rdquo;, and &ldquo;\\$\\$\\$string&rdquo; for &ldquo;\\$\\$string". Note that a standalone occurrence, i.e. "$&rdquo;, is illegal.
+-   ***&***: A single occurrence at the start of a string indicates that the *remaining characters* should be interpreted as a **symbol**, e.g. &ldquo;&or&rdquo; denotes `or`, and &ldquo;&a-sym&rdquo; denotes `a-sym`. As with &ldquo;:&rdquo;, a standalone occurrence, i.e. &ldquo;&&rdquo;, is illegal; and to denote a string starting with `&`, escape with an extra occurrence, e.g. &ldquo;&&a&rdquo; for &ldquo;&a&rdquo;.
+-   ***?***, ***$***: A single occurrence on its own or at the start of a string causes the *entire string* to be interpreted as a symbol, e.g. &ldquo;?n&rdquo; denotes `?n`, &ldquo;$&rdquo; `$`, and &ldquo;$db&rdquo; `$db`. Escape with an extra occurrence to denote a string starting with either of these characters, e.g. &ldquo;??qn&rdquo; for &ldquo;?qn&rdquo;.
+-   ***.***, ***&#x2026;***: Interpreted as a symbol when used as-is. Does not require escaping, e.g. &ldquo;.hidden&rdquo; represents itself i.e. &ldquo;.hidden&rdquo;.
+-   ***+***, ***-***, ***\****, ***/***, ***\_***, ***%***: As with `.` and `...`, used on their own to represent symbols, and don&rsquo;t require escaping.
+-   ***nil***: Represents `nil`.
+-   ***!list***: As the first element within a pair of square brackets, indicates that the remaining elements form a Clojure list, e.g. `["!list", 1, 2, "c"]` translates into `(1 2 "c")`.
 
 Note that where escaping is required, it is only at the beginning of strings; occurrences elsewhere are treated literally, e.g. &ldquo;$abc&rdquo; must be encoded as &ldquo;$$abc&rdquo;, but &ldquo;e$c&rdquo; is encoded as itself i.e. &ldquo;e$c&rdquo;.
 
 
-<a id="orge3401a3"></a>
+<a id="orga2caf85"></a>
 
 ### Examples
 
@@ -206,7 +206,7 @@ Note that where escaping is required, it is only at the beginning of strings; oc
         {":selector": [":name"], ":eids": ["!list", 1, 2, 3, 4]}
 
 
-<a id="org0023b94"></a>
+<a id="orgdc4c9fa"></a>
 
 ## Hybrid
 
@@ -243,14 +243,14 @@ Note that where escaping is required, it is only at the beginning of strings; oc
                       [2, "alias", "bob", 1, true]]}
 
 
-<a id="org5568f66"></a>
+<a id="org8389b6c"></a>
 
 # Responses
 
 At the moment, the Server returns plain JSON responses, with sets denoted by `["!set" ...]` for `#{...}`. Note, unfortuantely, that this means responses are in a sense asymmetric with requests containing Clojure syntax, e.g. transacting a value of `:val` and `"val"` will produce `"val"` alike in response `tx-data`.
 
 
-<a id="orgf0ff09b"></a>
+<a id="org10b7278"></a>
 
 # Limitations and future work
 
