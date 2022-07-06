@@ -109,12 +109,12 @@
   (let [valtype-attrs-map (ju/get-valtype-attrs-map (.-schema @conn))
         entities (if (= content-type ju/json-fmt)
                    (map (fn [d]
-                          (let [a (ju/keywordize-string (nth d 1))
-                                update-v (if (= (:schema-flexibility (:config @conn)) :write)
-                                           #(ju/cond-xf-val (ju/ident-for @conn a) % valtype-attrs-map @conn)
-                                           #(ju/clojurize %))]
-                            (-> (assoc d 1 a)
-                                (update 2 update-v))))
+                          (if (= (:schema-flexibility (:config @conn)) :write)
+                            (let [a (ju/keywordize-string (nth d 1))]
+                              (-> (assoc d 1 a)
+                                  (update 2 #(ju/cond-xf-val (ju/ident-for @conn a) % valtype-attrs-map @conn))))
+                            (-> (update d 1 ju/clojurize)
+                                (update 2 ju/clojurize))))
                         entities)
                    entities)]
     (-> @(d/load-entities conn entities)

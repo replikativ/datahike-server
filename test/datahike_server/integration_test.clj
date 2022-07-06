@@ -675,48 +675,42 @@
    (testing "/load-entities: loading entities into a new database"
      (let [schema (conj (:schema (nth schema-data-map 1)) alias-symbol-schema)
            schema-entity-count (count schema)
-           data-with-schema [[1 :name "Alice" 1 true]
-                             [1 :age 20 1 true]
-                             [1 :alias :alice 1 true]
-                             [2 :name "Bob" 1 true]
-                             [2 :age 21 1 true]
-                             [2 :alias :bob 1 true]]
-           xf-data-to-expected (fn [data eid-shift]
-                                 (map (fn [d] (-> (update d 0 #(+ % eid-shift))
-                                                  (assoc 3 (+ dc/tx0 2))))
-                                      data))
+           data [[1 :name "Alice" 1 true]
+                 [1 :age 20 1 true]
+                 [1 :alias :alice 1 true]
+                 [2 :name "Bob" 1 true]
+                 [2 :age 21 1 true]
+                 [2 :alias :bob 1 true]]
+           xf-data-with-schema-to-expected (fn [data eid-shift]
+                                             (map (fn [d] (-> (update d 0 #(+ % eid-shift))
+                                                              (assoc 3 (+ dc/tx0 2))))
+                                                  data))
            filter-datoms-result (fn [result] (filter #(> (nth % 3) (+ dc/tx0 1)) result))]
        (testing "Without attribute refs"
-         (let [data (cond->> [[100 :foo 200 1000 true]
-                              [101 :foo  300 1000 true]
-                              [100 :foo 200 1001 false]
-                              [100 :foo 201 1001 true]
-                              [13 :bar :baz 1002 true]
-                              [12 :fizz "buzz" 1002 true]]
-                      json-req? (mapv #(if (keyword? (nth % 2)) (update % 2 str) %)))]
-           (testing "Without schema"
-             (let [header (get-test-header "schema-on-read")]
-               (api-request :post "/load-entities" {:entities data} header json-req? json-ret?)
-               (is (= [[1 :foo 201 (+ dc/tx0 2) true]
-                       [2 :foo 300 (+ dc/tx0 1) true]
-                       [3 :bar :baz (+ dc/tx0 3) true]
-                       [4 :fizz "buzz" (+ dc/tx0 3) true]]
-                      (api-request :post "/datoms" {:index :eavt} header)))))
-           (testing "With schema"
-             (let [header (get-test-header "default")]
-               (transact-request schema header)
-               (api-request :post "/load-entities" {:entities data-with-schema} header json-req? json-ret?)
-               (is (= (set (xf-data-to-expected data-with-schema schema-entity-count))
-                      (set (filter-datoms-result (api-request :post "/datoms" {:index :eavt} header)))))))))
+         (testing "Without schema"
+           (let [req-data (if json-req?
+                            (mapv #(-> (if (keyword? (nth % 2)) (update % 2 str) %)
+                                       (update 1 str))
+                                  data)
+                            data)
+                 header (get-test-header "schema-on-read")]
+             (api-request :post "/load-entities" {:entities req-data} header json-req? json-ret?)
+             (is (= (set (map #(assoc % 3 (+ dc/tx0 1)) data))
+                    (set (api-request :post "/datoms" {:index :eavt} header))))))
+         (testing "With schema"
+           (let [header (get-test-header "default")]
+             (transact-request schema header)
+             (api-request :post "/load-entities" {:entities data} header json-req? json-ret?)
+             (is (= (set (xf-data-with-schema-to-expected data schema-entity-count))
+                    (set (filter-datoms-result (api-request :post "/datoms" {:index :eavt} header))))))))
        (testing "With attribute refs"
          (let [header (get-test-header "attr-refs")
                max-schema-eid (+ max-system-schema-eid schema-entity-count)
                schema-tx-result (transact-request schema header)
                schema-ident-refs (get-schema-ident-refs schema-tx-result false)
-               data (mapv (fn [d] (update d 1 #(% schema-ident-refs)))
-                          data-with-schema)]
+               data (mapv (fn [d] (update d 1 #(% schema-ident-refs))) data)]
            (api-request :post "/load-entities" {:entities data} header json-req? json-ret?)
-           (is (= (set (xf-data-to-expected data max-schema-eid))
+           (is (= (set (xf-data-with-schema-to-expected data max-schema-eid))
                   (set (filter-datoms-result (api-request :post "/datoms" {:index :eavt} header)))))))))))
 
 (deftest load-entities-test-edn
