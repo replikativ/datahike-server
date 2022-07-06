@@ -617,7 +617,7 @@
                       (map #(assoc %1 :db/id %2)
                            schema
                            (map inc (range (count schema)))))
-              (->> (api-request :get "/schema" {} header json? json?)
+              (->> (api-request :get "/schema" nil header json? json?)
                    (jsonize-schema json?))))))))
 
 (deftest schema-test-edn
@@ -636,7 +636,7 @@
                :db/unique #{:name}
                :db.unique/identity #{:name}
                :db/index #{:name}}
-              (->> (api-request :get "/reverse-schema" {} header json? json?)
+              (->> (api-request :get "/reverse-schema" nil header json? json?)
                    (reduce (fn [m [k attrs]]
                              (assoc m k (into #{} (map keyword attrs))))
                            {}))))))))
