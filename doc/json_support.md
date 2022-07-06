@@ -60,7 +60,6 @@ For attribute `:alias` with `:db/valueType` `:db.type/keyword`:
 `{:tx-data [[:db/retractEntity [:name "Chris"]]]}`
 <->
 `{"tx-data": [["db/retractEntity", ["name", "Chris"]]]}`
-```
 
 - `datoms`, `seek-datoms`
 
