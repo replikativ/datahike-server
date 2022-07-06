@@ -39,7 +39,7 @@ Use `null` in all cases:
               ["db/add", -1, "age", 21]]}`
               
 For attribute `:alias` with `:db/valueType` `:db.type/keyword`:
-``{:tx-data [ [:db/add 5 :alias :alice] ]}` <-> `{"tx-data": [ ["db/add", 5, "alias", "alice"] ]}`
+`{:tx-data [ [:db/add 5 :alias :alice] ]}` <-> `{"tx-data": [ ["db/add", 5, "alias", "alice"] ]}`
 
 `{:tx-data [{:name "Chris", :age 5, :parents 5}]}`
 <->
