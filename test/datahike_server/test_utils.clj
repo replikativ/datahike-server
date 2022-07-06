@@ -7,8 +7,7 @@
             [datahike-server.server] ; needed just for mount/start and mount/start-with-states
             [clj-http.client :as client]
             [mount.core :as mount]
-            [muuntaja.core :as m]
-            [jsonista.core :as json]))
+            [muuntaja.core :as m]))
 
 (defn setup-db
   ([f] (setup-db f nil))
