@@ -5,7 +5,8 @@
    [datahike-server.database :as dd]
    [buddy.auth :refer [authenticated?]]
    [buddy.auth.backends :as buddy-auth-backends]
-   [buddy.auth.middleware :as buddy-auth-middleware])
+   [buddy.auth.middleware :as buddy-auth-middleware]
+   [taoensso.timbre :as log])
   (:import
    [clojure.lang ExceptionInfo]))
 
@@ -85,3 +86,11 @@
       (catch Exception _
         {:status 500
          :body {:message "Unexpected internal server error."}}))))
+
+(defn time-api-call
+  [handler]
+  (fn [request]
+    (let [start (System/currentTimeMillis)
+          response (handler request)]
+      (log/info "Time elapsed: " (- (System/currentTimeMillis) start) " ms")
+      response)))
