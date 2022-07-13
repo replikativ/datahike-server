@@ -120,7 +120,7 @@
                :summary "Get current database data."
                :parameters {:header ::conn-header}
                :middleware [middleware/token-auth middleware/auth]
-               :handler    h/get-db-hash}}]
+               :handler    h/get-db}}]
 
    ["/q"
     {:swagger {:tags ["API"]}
