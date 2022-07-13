@@ -325,29 +325,28 @@
                      :hitchhiker.tree/version
                      :datahike/id
                      :datahike/created-at}
+         update-json-cfg (fn [c] (-> (update c :index keyword)
+                                     (update :schema-flexibility keyword)
+                                     (update-in [:store :backend] keyword)))
          cfg-others {:attribute-refs? false,
                      :cache-size 100000,
                      :index :datahike.index/hitchhiker-tree,
                      :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}
-         update-json-cfg (fn [c] (-> (update c :index keyword)
-                                     (update :schema-flexibility keyword)
-                                     (update-in [:store :backend] keyword)))]
+         db-data-others {:hash    0
+                         :max-tx dc/tx0
+                         :max-eid 0}]
      (testing "schemaless database should return meta, config, hash, max-tx, and max-eid"
        (let [{:keys [meta] :as db-data} (api-request :get "/db" nil (get-test-header "schema-on-read") false json?)]
          (is (= meta-keys (set (keys meta))))
-         (is (= {:config  (merge (get-test-cfg "schema-on-read") cfg-others)
-                 :hash    0
-                 :max-tx  536870912
-                 :max-eid 0}
+         (is (= (merge {:config  (merge (get-test-cfg "schema-on-read") cfg-others)}
+                       db-data-others)
                 (cond-> (dissoc db-data :meta)
                   json? (update :config update-json-cfg))))))
      (testing "schemaful database should return meta, config, hash, max-tx, and max-eid"
        (let [{:keys [meta] :as db-data} (api-request :get "/db" nil (get-test-header "no-history") false json?)]
          (is (= meta-keys (set (keys meta))))
-         (is (= {:config  (merge (get-test-cfg "no-history") cfg-others)
-                 :hash    0
-                 :max-tx 536870912
-                 :max-eid 0}
+         (is (= (merge {:config  (merge (get-test-cfg "no-history") cfg-others)}
+                       db-data-others)
                 (cond-> (dissoc db-data :meta)
                   json? (update :config update-json-cfg)))))))))
 
