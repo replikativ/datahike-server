@@ -67,14 +67,33 @@
   (dd/deploy {:installer :remote :artifact jar-path
               :pom-file (b/pom-path {:lib lib :class-dir class-dir})}))
 
+(defn fib [a b]
+  (lazy-seq (cons a (fib b (+ a b)))))
+
+(defn retry-with-fib-backoff [retries exec-fn test-fn]
+  (loop [idle-times (take retries (fib 1 2))]
+    (let [result (exec-fn)]
+      (if (test-fn result)
+        result
+        (when-let [sleep-ms (first idle-times)]
+          (println "Returned: " result)
+          (println "Retrying with remaining back-off times (in s): " idle-times)
+          (Thread/sleep (* 1000 sleep-ms))
+          (recur (rest idle-times)))))))
+
+(defn try-release []
+  (try (gh/overwrite-asset {:org "replikativ"
+                            :repo (name lib)
+                            :tag version
+                            :commit current-commit
+                            :file uber-path
+                            :content-type "application/java-archive"})
+       (catch clojure.lang.ExceptionInfo e
+         (assoc (ex-data e) :failure? true))))
+
 (defn release
   [_]
-  (-> (gh/overwrite-asset {:org "replikativ"
-                           :repo (name lib)
-                           :tag version
-                           :commit current-commit
-                           :file uber-path
-                           :content-type "application/java-archive"})
+  (-> (retry-with-fib-backoff 10 try-release :failure?)
       :url
       println))
 
