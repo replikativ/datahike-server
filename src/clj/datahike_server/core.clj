@@ -2,7 +2,9 @@
   (:gen-class)
   (:require [mount.core :as mount]
             [taoensso.timbre :as log]
-            [datahike-server.config :as config]))
+            [datahike-server.config :as config]
+            [datahike-server.database]
+            [datahike-server.server]))
 
 (defn -main [& args]
   (mount/start)
