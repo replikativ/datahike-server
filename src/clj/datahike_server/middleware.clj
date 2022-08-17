@@ -3,10 +3,13 @@
    [datahike.api :as d]
    [datahike-server.config :as dc]
    [datahike-server.database :as dd]
+   [datahike-server.json-utils :as ju]
    [buddy.auth :refer [authenticated?]]
    [buddy.auth.backends :as buddy-auth-backends]
    [buddy.auth.middleware :as buddy-auth-middleware]
-   [taoensso.timbre :as log])
+   [taoensso.timbre :as log]
+   [clojure.walk :as walk]
+   [muuntaja.core :as m])
   (:import
    [clojure.lang ExceptionInfo]))
 
@@ -87,10 +90,48 @@
         {:status 500
          :body {:message "Unexpected internal server error."}}))))
 
-(defn time-api-call
-  [handler]
+(defn time-api-call [handler]
   (fn [request]
     (let [start (System/currentTimeMillis)
           response (handler request)]
       (log/info "Time elapsed: " (- (System/currentTimeMillis) start) " ms")
       response)))
+
+(defn- xf-key [k]
+  (if (keyword? k)
+    (let [kw-name (name k)]
+      (case (ju/first-char-str kw-name)
+        ":" (keyword (subs kw-name 1))
+        ("(" "[") (ju/clojurize-coll-str kw-name)
+        k))
+    k))
+
+(defn- finalize-keys [params]
+  (walk/prewalk #(if (map? %)
+                   (reduce-kv (fn [m k v] (assoc m (xf-key k) v)) {} %)
+                   %)
+                params))
+
+; The middleware chain apparently can't be transformed nor the Muuntaja instance customised
+; at the route level, hence this middleware function
+(defn fix-keywordized-coll-keys [handler]
+  (fn [request]
+    (handler
+     (if (and (#{"/q" "/pull" "/pull-many"} (:uri request)) (= (:content-type request) ju/json-fmt))
+       (update request :body-params finalize-keys)
+       request))))
+
+(defn tag-sets [handler]
+  (fn [request]
+    (let [response (handler request)]
+      (if (= (:content-type request) ju/json-fmt)
+        (update response :body (fn [body] (walk/postwalk #(if (set? %) (conj (sequence %) "!set") %) body)))
+        response))))
+
+(defn encode-plain-value [handler]
+  (fn [request]
+    (let [format (:content-type request)
+          response (handler request)]
+      (if (not (instance? java.io.ByteArrayInputStream (:body response)))
+        (update response :body #(m/encode format %))
+        response))))

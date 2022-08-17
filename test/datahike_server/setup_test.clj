@@ -1,14 +1,15 @@
 (ns ^:integration datahike-server.setup-test
   (:require [clojure.test :refer [deftest testing is]]
-            [datahike-server.database :refer [cleanup-databases]]
+            [datahike-server.database :as db]
             [datahike-server.config :as config]
             [datahike-server.test-utils :refer [api-request]]
             [mount.core :as mount]))
 
 (deftest dev-mode-test
-  (mount/start-with-states {#'datahike-server.config/config {:start #(assoc (config/load-config "resources/config.edn") :dev-mode true)
-                                                             :stop (fn [] {})}})
-  (cleanup-databases)
+  (mount/start-with-states {#'datahike-server.config/config
+                            {:start #(assoc-in (config/load-config config/config-file-path) [:server :dev-mode] true)
+                             :stop (fn [] {})}})
+  (db/cleanup-databases)
   (is (= {:databases
           [{:store {:id "sessions", :backend :mem},
             :keep-history? false,

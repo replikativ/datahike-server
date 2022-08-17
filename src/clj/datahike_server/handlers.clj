@@ -2,11 +2,13 @@
   (:require [datahike-server.database :refer [conns]]
             [datahike.api :as d]
             [datahike.core :as c]
-            [taoensso.timbre :as log]))
+            [datahike-server.json-utils :as ju]
+            [taoensso.timbre :as log]
+            [clojure.walk :as walk]))
 
 (defn success
-  ([data] {:status 200 :body data})
-  ([] {:status 200}))
+  ([] {:status 200})
+  ([data] {:status 200 :body data}))
 
 (defn list-databases [_]
   (let [xf (comp
@@ -18,52 +20,72 @@
 (defn get-db [{:keys [conn]}]
   (success (select-keys @conn [:meta :config :max-eid :max-tx :hash])))
 
-(defn cleanup-result [result]
+(defn- cleanup-result [result]
   (-> result
       (dissoc :db-after :db-before)
       (update :tx-data #(mapv (comp vec seq) %))
       (update :tx-meta #(mapv (comp vec seq) %))))
 
-(defn transact [{{{:keys [tx-data tx-meta]} :body} :parameters conn :conn}]
-  (let [start (System/currentTimeMillis)
-        args {:tx-data tx-data
-              :tx-meta tx-meta}
+(defn transact [{:keys [conn content-type] {{:keys [tx-data tx-meta]} :body} :parameters}]
+  (let [args {:tx-data (if (= content-type ju/json-fmt) (ju/xf-data-for-tx tx-data @conn) tx-data)
+              :tx-meta (if (= content-type ju/json-fmt) (ju/xf-data-for-tx tx-meta @conn) tx-meta)}
+        start (System/currentTimeMillis)
         _ (log/info "Transacting with arguments: " args)
         result (d/transact conn args)]
     (-> result
         cleanup-result
         success)))
 
-(defn q [{{:keys [body]} :parameters conn :conn db :db}]
-  (let [args {:query (:query body [])
-              :args (concat [(or db @conn)] (:args body []))
-              :limit (:limit body -1)
+(defn q [{{:keys [body]} :parameters :keys [conn db content-type] :as req-arg}]
+  (let [args {:query (cond-> (:query body [])
+                       (= content-type ju/json-fmt) ju/clojurize)
+              :args (concat [(or db @conn)] (cond-> (:args body [])
+                                              (= content-type ju/json-fmt) ju/clojurize))
+              :limit  (:limit body -1)
               :offset (:offset body 0)}]
     (log/info "Querying with arguments: " (str args))
-    (success (into [] (d/q args)))))
+    (success (d/q args))))
 
-(defn pull [{{{:keys [selector eid]} :body} :parameters conn :conn db :db}]
-  (success (d/pull (or db @conn) selector eid)))
+(defn pull [{:keys [conn db content-type] {{:keys [selector eid]} :body} :parameters}]
+  (let [result (if (= content-type ju/json-fmt)
+                 (d/pull (or db @conn) (ju/clojurize selector) (ju/clojurize eid))
+                 (d/pull (or db @conn) selector eid))]
+    (success result)))
 
-(defn pull-many [{{{:keys [selector eids]} :body} :parameters conn :conn db :db}]
-  (success (vec (d/pull-many (or db @conn) selector eids))))
+(defn pull-many [{:keys [conn db content-type] {{:keys [selector eids]} :body} :parameters}]
+  (let [result (if (= content-type ju/json-fmt)
+                 (d/pull-many (or db @conn) (ju/clojurize selector) (ju/clojurize eids))
+                 (d/pull-many (or db @conn) selector eids))]
+    (success result)))
 
-(defn datoms [{{{:keys [index components]} :body} :parameters conn :conn db :db}]
-  (success (mapv (comp vec seq) (apply d/datoms (into [(or db @conn) index] components)))))
+(defn datoms [{:keys [conn db content-type] {{:keys [index] :as body} :body} :parameters}]
+  (let [db (or db @conn)
+        arg-map (if (= content-type ju/json-fmt)
+                  (-> (update body :index keyword)
+                      (update :components #(ju/xf-datoms-components (name index) % db)))
+                  body)]
+    (success (mapv (comp vec seq) (d/datoms db arg-map)))))
 
-(defn seek-datoms [{{{:keys [index components]} :body} :parameters conn :conn db :db}]
-  (success (mapv (comp vec seq) (apply d/seek-datoms (into [(or db @conn) index] components)))))
+(defn seek-datoms [{:keys [conn db content-type] {{:keys [index] :as body} :body} :parameters}]
+  (let [db (or db @conn)
+        arg-map (if (= content-type ju/json-fmt)
+                  (-> (update body :index keyword)
+                      (update :components #(ju/xf-datoms-components (name index) % db)))
+                  body)]
+    (success (mapv (comp vec seq) (d/seek-datoms db arg-map)))))
 
 (defn tempid [_]
   (success {:tempid (d/tempid :db.part/db)}))
 
-(defn entity [{{{:keys [eid attr]} :body} :parameters conn :conn db :db}]
-  (let [db (or db @conn)]
-    (if attr
-      (success (get (d/entity db eid) attr))
-      (success (->> (d/entity db eid)
-                    c/touch
-                    (into {}))))))
+(defn entity [{:keys [conn db content-type] {{:keys [eid attr]} :body} :parameters}]
+  (let [db (or db @conn)
+        e (if (= content-type ju/json-fmt)
+            (ju/handle-id-or-av-pair eid (ju/get-valtype-attrs-map (.-schema db)) db)
+            eid)
+        entity (d/entity db e)]
+    (and entity (if attr
+                  (success (get entity (keyword attr)))
+                  (success (into {} (c/touch entity)))))))
 
 (defn schema [{:keys [conn]}]
   (success (d/schema @conn)))
@@ -71,14 +93,30 @@
 (defn reverse-schema [{:keys [conn]}]
   (success (d/reverse-schema @conn)))
 
-(defn index-range [{{{:keys [attrid start end]} :body} :parameters conn :conn db :db}]
-  (let [db (or db @conn)]
-    (success (d/index-range db {:attrid attrid
-                                :start  start
-                                :end    end}))))
+(defn index-range [{:keys [conn db content-type] {{:keys [attrid start end] :as body} :body} :parameters}]
+  (let [db (or db @conn)
+        a (ju/keywordize-string attrid)
+        a-ident (ju/ident-for db a)
+        valtype-attrs-map (ju/get-valtype-attrs-map (.-schema db))
+        arg-map (if (= content-type ju/json-fmt)
+                  (-> (assoc body :attrid a)
+                      (update :start #(ju/cond-xf-val a-ident % valtype-attrs-map db))
+                      (update :end #(ju/cond-xf-val a-ident % valtype-attrs-map db)))
+                  body)]
+    (success (mapv (comp vec seq) (d/index-range db arg-map)))))
 
-(defn load-entities [{{{:keys [entities]} :body} :parameters conn :conn}]
-  (-> @(d/load-entities conn entities)
-      cleanup-result
-      success))
-
+(defn load-entities [{:keys [conn content-type] {{:keys [entities]} :body} :parameters}]
+  (let [valtype-attrs-map (ju/get-valtype-attrs-map (.-schema @conn))
+        entities (if (= content-type ju/json-fmt)
+                   (map (fn [d]
+                          (if (= (:schema-flexibility (:config @conn)) :write)
+                            (let [a (ju/keywordize-string (nth d 1))]
+                              (-> (assoc d 1 a)
+                                  (update 2 #(ju/cond-xf-val (ju/ident-for @conn a) % valtype-attrs-map @conn))))
+                            (-> (update d 1 ju/clojurize)
+                                (update 2 ju/clojurize))))
+                        entities)
+                   entities)]
+    (-> @(d/load-entities conn entities)
+        cleanup-result
+        success)))

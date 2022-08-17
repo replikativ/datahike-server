@@ -1,11 +1,12 @@
 (ns datahike-server.database
-  (:require [mount.core :refer [defstate stop start]]
+  (:require [mount.core :as mount :refer [defstate]]
             [taoensso.timbre :as log]
-            [datahike-server.config :refer [config]]
+            [datahike-server.config :as config]
             [datahike.api :as d])
   (:import [java.util UUID]))
 
-(defn init-connections [{:keys [databases]}]
+(defn init-connections [{:keys [databases] :as config}]
+  (log/debug "Connecting to databases with config: " (str config))
   (if (nil? databases)
     (let [_ (when-not (d/database-exists?)
               (log/infof "Creating database...")
@@ -29,20 +30,23 @@
      {}
      databases)))
 
+(defn release-conns [conns]
+  (for [conn (vals conns)]
+    (d/release conn)))
+
 (defstate conns
-  :start (do
-           (log/debug "Connecting to databases with config: " (str config))
-           (init-connections config))
-  :stop (for [conn (vals conns)]
-          (d/release conn)))
+  :start (init-connections config/config)
+  :stop (release-conns conns))
 
 (defn cleanup-databases []
-  (stop #'datahike-server.database/conns)
-  (doseq [cfg (:databases config)]
-    (println "Purging " cfg " ...")
-    (d/delete-database cfg)
-    (println "Done"))
-  (start #'datahike-server.database/conns))
+  ; (vals conns) triggers an exception after conns is unmounted
+  (let [cfgs (map (fn [conn] (.-config @conn)) (vals conns))]
+    (mount/stop #'datahike-server.database/conns)
+    (doseq [cfg cfgs]
+      (println "Purging " cfg " ...")
+      (d/delete-database cfg)
+      (println "Done")))
+  (mount/start #'datahike-server.database/conns))
 
 (defn get-db [db-name]
   (if-let [conn (get conns db-name)]

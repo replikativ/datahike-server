@@ -6,9 +6,7 @@
   (testing "Loading bad config file"
     (with-redefs [load-config-file (constantly {:server {:join? :baz}})]
       (is (thrown? clojure.lang.ExceptionInfo
-                   (load-config "redef1")))
-      (is (thrown? clojure.lang.ExceptionInfo
-                   (load-config :redef2))))
+                   (load-config "redef1"))))
     (with-redefs [load-config-file (constantly {:server {:join? true :port 1 :loglevel :meh}})]
       (is (thrown? clojure.lang.ExceptionInfo
                    (load-config "redef3"))))
