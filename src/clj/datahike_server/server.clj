@@ -25,7 +25,7 @@
 
 (s/def ::entity any?)
 (s/def ::tx-data (s/coll-of ::entity))
-(s/def ::tx-meta (s/coll-of ::entity))
+(s/def ::tx-meta (s/nilable (s/coll-of ::entity)))
 (s/def ::transactions (s/keys :req-un [::tx-data] :opt-un [::tx-meta]))
 
 (s/def ::query (s/coll-of any?))
