@@ -1,0 +1,22 @@
+name: Batch Dependency Update
+
+on: workflow_dispatch
+  #schedule:
+  #  - cron: '0 7 * * *'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Latest Commit
+      uses: actions/checkout@v3.0.2
+
+    - name: Check deps
+      uses:  nnichols/clojure-dependency-update-action@v4
+      with:
+        github-token: ${{ secrets.github_token }}
+        skips: "pom boot leiningen"
+        batch: true
+        branch: "main"
