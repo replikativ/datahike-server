@@ -137,7 +137,7 @@
                                                                     (update :index keyword))
                                                                dbs)))
                         ret)
-                  ret (update ret :databases (fn [dbs] (map #(select-keys % [:attribute-refs? :index :keep-history?
+                  ret (update ret :databases (fn [dbs] (map #(select-keys % [:keep-history?
                                                                              :schema-flexibility :store])
                                                             dbs)))]
               ret))))))
