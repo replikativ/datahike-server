@@ -32,7 +32,9 @@
 
 (def ^:private test-cfg-headers
   (map (fn [cfg] {:headers {:authorization "token neverusethisaspassword"
-                            :store-identity (cfg->store-identity cfg)}})
+                            :store-identity (or (:id (:store cfg)) ;; mem
+                                                (:path (:store cfg))) ;; file
+                            }})
        (:databases test-cfg)))
 
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
