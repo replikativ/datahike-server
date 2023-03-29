@@ -22,7 +22,8 @@
            (throw (ex-info
                    (str "A database with store-identity '" store-identity "' already exists. Store identities on the server must be unique.")
                    {:event :connection/initialization
-                    :error :database.store-identity/duplicate})))
+                    :error :database.store-identity/duplicate
+                    :config cfg})))
          (when-not (d/database-exists? cfg)
            (log/infof "Creating database...")
            (d/create-database cfg)
@@ -54,4 +55,6 @@
   (if-let [conn (get conns store-identity)]
     conn
     (throw (ex-info (format "Database %s does not exist." store-identity)
-                    {:cause :db-does-not-exist}))))
+                    {:cause :db-does-not-exist
+                     :conn conn
+                     :store-identity store-identity}))))

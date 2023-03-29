@@ -1,7 +1,7 @@
 (ns ^:integration datahike-server.integration-test
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [datahike.constants :as dc]
-            [datahike.store :refer [store-identity]]
+            [datahike.store :as ds]
             [datahike.db :as db]
             [datahike-server.config :as config]
             [datahike-server.json-utils :as ju]
@@ -37,7 +37,7 @@
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
 
 (defn- get-test-cfg [store-identity]
-  (reduce (fn [s cfg] (if (= s (pr (store-identity (:store cfg)))) (reduced cfg) s))
+  (reduce (fn [s cfg] (if (= s (pr (ds/store-identity (:store cfg)))) (reduced cfg) s))
           store-identity
           (:databases test-cfg)))
 
