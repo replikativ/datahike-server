@@ -7,7 +7,6 @@
             [datahike-server.json-utils :as ju]
             [datahike-server.test-utils :refer [api-request] :as utils]))
 
-
 (def ^:private default-cfg {:store {:backend :mem
                                     :id "default"}
                             :schema-flexibility :write
@@ -32,7 +31,7 @@
 
 (def ^:private test-cfg-headers
   (map (fn [cfg] {:headers {:authorization "token neverusethisaspassword"
-                           :store-identity (pr (store-identity (:store cfg)))}})
+                            :store-identity (pr (store-identity (:store cfg)))}})
        (:databases test-cfg)))
 
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})

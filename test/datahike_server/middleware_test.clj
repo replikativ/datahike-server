@@ -44,12 +44,12 @@
               :conn
               dc/conn?))
       (is (= store-id (-> (app request)
-                         :conn
-                         deref
-                         :config
-                         :store
-                         store-identity
-                         pr))))
+                          :conn
+                          deref
+                          :config
+                          :store
+                          store-identity
+                          pr))))
     (testing "non-existing database"
       (let [store-id "[[:mem \"bakeries\"] :db]"
             request (assoc-in request [:headers "store-identity"] store-id)]
