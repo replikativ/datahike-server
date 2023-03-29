@@ -37,7 +37,8 @@
         success)))
 
 (defn q [{{:keys [body]} :parameters :keys [conn db content-type] :as req-arg}]
-  (let [args {:query (:query body [])
+  (let [args {:query (cond-> (:query body [])
+                       (= content-type ju/json-fmt) ju/clojurize)
               :args (concat [(or db @conn)] (cond-> (:args body [])
                                               (= content-type ju/json-fmt) ju/clojurize))
               :limit  (:limit body -1)
@@ -47,13 +48,13 @@
 
 (defn pull [{:keys [conn db content-type] {{:keys [selector eid]} :body} :parameters}]
   (let [result (if (= content-type ju/json-fmt)
-                 (d/pull (or db @conn) selector (ju/clojurize eid))
+                 (d/pull (or db @conn) (ju/clojurize selector) (ju/clojurize eid))
                  (d/pull (or db @conn) selector eid))]
     (success result)))
 
 (defn pull-many [{:keys [conn db content-type] {{:keys [selector eids]} :body} :parameters}]
   (let [result (if (= content-type ju/json-fmt)
-                 (d/pull-many (or db @conn) selector (ju/clojurize eids))
+                 (d/pull-many (or db @conn) (ju/clojurize selector) (ju/clojurize eids))
                  (d/pull-many (or db @conn) selector eids))]
     (success result)))
 
