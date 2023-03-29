@@ -3,6 +3,7 @@
               :schema-flexibility :read
               :keep-history? false}
              {:store {:backend :file
+                      :scope "test.datahike.io"
                       :path "/tmp/dh-users"}
               :keep-history? true
               :schema-flexibility :write}]

@@ -60,7 +60,7 @@
                 sut/wrap-db-connection
                 sut/wrap-server-exception
                 sut/wrap-fallback-exception)
-        store-id "[:file \"users\"]"
+        store-id "[:file \"test.datahike.io\" \"/tmp/dh-users\"]"
         request {:headers {"store-identity" store-id}}]
     (testing "history exists for the database"
       (let [request (assoc-in request [:headers "db-history-type"] "history")]
