@@ -10,7 +10,7 @@
   (pr-str (ds/store-identity (:store cfg))))
 
 (defn init-connections [{:keys [databases] :as config}]
-  (log/debug "Connecting to databases with config: " (str config))
+  (log/debug "Connecting to databases with config: " config)
   (if (nil? databases)
     (let [_ (when-not (d/database-exists?)
               (log/infof "Creating database...")
@@ -21,6 +21,7 @@
     (reduce
      (fn [acc cfg]
        (let [store-identity (cfg->store-identity cfg)]
+         (log/debug "Store-identity: " store-identity)
          (when (contains? acc store-identity)
            (throw (ex-info
                    (str "A database with store-identity '" store-identity "' already exists. Store identities on the server must be unique.")
