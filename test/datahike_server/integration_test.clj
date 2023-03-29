@@ -38,7 +38,10 @@
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
 
 (defn- get-test-cfg [store-identity]
-  (reduce (fn [s cfg] (if (= s (cfg->store-identity cfg)) (reduced cfg) s))
+  (reduce (fn [s cfg] (if (= s (or (:id (:store cfg)) ;; mem
+                                   (:path (:store cfg)))) ;; file
+                        (reduced cfg)
+                        s))
           store-identity
           (:databases test-cfg)))
 
