@@ -3,7 +3,6 @@
             [datahike.core :as dc]
             [datahike.store :refer [store-identity]]
             [datahike.constants :as dconst]
-            [datahike.db :as dd]
             [datahike.db.interface :as dbi]
             [datahike-server.middleware :as sut]
             [datahike-server.test-utils :as utils]))
@@ -38,7 +37,7 @@
   (let [app (-> (sut/wrap-db-connection identity)
                 sut/wrap-server-exception
                 sut/wrap-fallback-exception)
-        store-id "[[:mem \"sessions\"] :db]"
+        store-id "[:mem \"sessions\"]"
         request {:headers {"store-identity" store-id}}]
     (testing "existing database"
       (is (-> (app request)
@@ -52,7 +51,7 @@
                           store-identity
                           pr))))
     (testing "non-existing database"
-      (let [store-id "[[:mem \"bakeries\"] :db]"
+      (let [store-id "[:mem \"bakeries\"]"
             request (assoc-in request [:headers "store-identity"] store-id)]
         (is (= {:status 404
                 :body {:message (str "Database " store-id " does not exist.")}}
@@ -63,7 +62,7 @@
                 sut/wrap-db-connection
                 sut/wrap-server-exception
                 sut/wrap-fallback-exception)
-        store-id "[[:file \"users\"] :db]"
+        store-id "[:file \"users\"]"
         request {:headers {"store-identity" store-id}}]
     (testing "history exists for the database"
       (let [request (assoc-in request [:headers "db-history-type"] "history")]
@@ -85,7 +84,7 @@
                 :db
                 dbi/-temporal-index?))))
     (testing "history on database with no history enabled"
-      (let [store-id "[[:mem \"sessions\"] :db]"
+      (let [store-id "[:mem \"sessions\"]"
             request (-> request
                         (assoc-in [:headers "db-history-type"] "history")
                         (assoc-in [:headers "store-identity"] store-id))]
@@ -93,7 +92,7 @@
                 :body {:message "history is only allowed on temporal indexed databases."}}
                (app request)))))
     (testing "as-of on database with no history enabled"
-      (let [store-id "[[:mem \"sessions\"] :db]"
+      (let [store-id "[:mem \"sessions\"]"
             request (-> request
                         (assoc-in [:headers "db-history-type"] "as-of")
                         (assoc-in [:headers "db-timepoint"] (str dconst/tx0))
@@ -102,7 +101,7 @@
                 :body {:message "as-of is only allowed on temporal indexed databases."}}
                (app request)))))
     (testing "since on database with no history enabled"
-      (let [store-id "[[:mem \"sessions\"] :db]"
+      (let [store-id "[:mem \"sessions\"]"
             request (-> request
                         (assoc-in [:headers "db-timepoint"] (str dconst/tx0))
                         (assoc-in [:headers "db-history-type"] "since")
