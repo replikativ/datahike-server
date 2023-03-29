@@ -31,11 +31,12 @@
             :token :neverusethisaspassword}})
 
 (def ^:private test-cfg-headers
-  (map (fn [cfg] {:headers {:authorization "token neverusethisaspassword"
-                            :store-identity (or (:id (:store cfg)) ;; mem
-                                                (:path (:store cfg))) ;; file
-                            }})
-       (:databases test-cfg)))
+  (into {}
+        (map (fn [cfg] [(or (:id (:store cfg)) ;; mem
+                            (:path (:store cfg))) ;; file
+                        {:headers {:authorization  "token neverusethisaspassword"
+                                   :store-identity (cfg->store-identity cfg)}}])
+             (:databases test-cfg))))
 
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
 
@@ -48,9 +49,7 @@
           (:databases test-cfg)))
 
 (defn- get-test-header [store-identity]
-  (reduce (fn [s h] (if (= s (:store-identity (:headers h))) (reduced h) s))
-          store-identity
-          test-cfg-headers))
+  (test-cfg-headers store-identity))
 
 (defn- update-header [h cfg]
   (update h :headers #(merge % cfg)))
