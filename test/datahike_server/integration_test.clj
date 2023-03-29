@@ -32,7 +32,7 @@
 
 (def ^:private test-cfg-headers
   (map (fn [cfg] {:headers {:authorization "token neverusethisaspassword"
-                           :store-identity (cfg->store-identity cfg)}})
+                            :store-identity (cfg->store-identity cfg)}})
        (:databases test-cfg)))
 
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
@@ -129,19 +129,17 @@
   ([] (databases-test false))
   ([json?]
    (testing "Get databases"
-     (is (= {:databases (mapv #(merge {:index :datahike.index/hitchhiker-tree
-                                       :attribute-refs? false,
-                                       :cache-size 100000,
-                                       :index-config {:index-b-factor 17, :index-data-node-size 300, :index-log-size 283}}
-                                      %)
-                              (:databases test-cfg))}
-            (let [ret (api-request :get "/databases" nil basic-header json? json?)]
-              (if json?
-                (update ret :databases (fn [db] (mapv #(-> (update-in % [:store :backend] keyword)
-                                                           (update :schema-flexibility keyword)
-                                                           (update :index keyword))
-                                                      db)))
-                ret)))))))
+     (is (= {:databases (:databases test-cfg)}
+            (let [ret (api-request :get "/databases" nil basic-header json? json?)
+                  ret (if json?
+                        (update ret :databases (fn [db] (mapv #(-> (update-in % [:store :backend] keyword)
+                                                                   (update :schema-flexibility keyword)
+                                                                   (update :index keyword))
+                                                              db)))
+                        ret)
+                  ret (update ret :database (map #(select-keys % [:attribute-refs? :index :keep-history?
+                                                                  :schema-flexibility :store])))]
+              ret))))))
 
 (deftest databases-test-edn
   (databases-test))

@@ -1,12 +1,12 @@
 (ns build
   (:require
-    [borkdude.gh-release-artifact :as gh]
-    [clojure.tools.build.api :as b]
-    [deps-deploy.deps-deploy :as dd])
+   [borkdude.gh-release-artifact :as gh]
+   [clojure.tools.build.api :as b]
+   [deps-deploy.deps-deploy :as dd])
   (:import
-    [java.nio.file Paths]
-    [com.google.cloud.tools.jib.api Jib Containerizer RegistryImage TarImage]
-    [com.google.cloud.tools.jib.api.buildplan AbsoluteUnixPath Port]))
+   [java.nio.file Paths]
+   [com.google.cloud.tools.jib.api Jib Containerizer RegistryImage TarImage]
+   [com.google.cloud.tools.jib.api.buildplan AbsoluteUnixPath Port]))
 
 (def lib 'io.replikativ/datahike-server)
 (def version (format "0.1.%s" (b/git-count-revs nil)))
@@ -112,19 +112,19 @@
   (if-not (and docker-login docker-password)
     (println "Docker credentials missing.")
     (let [container-builder (-> (Jib/from "gcr.io/distroless/java17-debian11")
-                                (.addLayer [(Paths/get uber-path (into-array String[]))] (AbsoluteUnixPath/get "/"))
+                                (.addLayer [(Paths/get uber-path (into-array String []))] (AbsoluteUnixPath/get "/"))
                                 (.setProgramArguments [(format "/%s" uber-file)])
                                 (.addExposedPort (Port/tcp 3000)))]
-       (.containerize
-         container-builder
-         (Containerizer/to
-           (-> (RegistryImage/named image)
-               (.addCredential (str docker-login) (str docker-password)))))
-       (.containerize
-         container-builder
-         (Containerizer/to
-           (-> (RegistryImage/named latest-image)
-               (.addCredential (str docker-login) (str docker-password)))))))
+      (.containerize
+       container-builder
+       (Containerizer/to
+        (-> (RegistryImage/named image)
+            (.addCredential (str docker-login) (str docker-password)))))
+      (.containerize
+       container-builder
+       (Containerizer/to
+        (-> (RegistryImage/named latest-image)
+            (.addCredential (str docker-login) (str docker-password)))))))
   (println "Deployed new image to Docker Hub: " image))
 
 (comment
