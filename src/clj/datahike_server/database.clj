@@ -3,7 +3,7 @@
             [taoensso.timbre :as log]
             [datahike-server.config :as config]
             [datahike.api :as d]
-            [datahike.store :refer [store-identity]])
+            [datahike.store :as ds])
   (:import [java.util UUID]))
 
 (defn init-connections [{:keys [databases] :as config}]
@@ -14,7 +14,7 @@
               (d/create-database)
               (log/infof "Done"))
           conn (d/connect)]
-      {(pr (store-identity (-> @conn :config :store))) conn})
+      {(pr (ds/store-identity (-> @conn :config :store))) conn})
     (reduce
      (fn [acc {:keys [store-identity] :as cfg}]
        (when (contains? acc store-identity)
@@ -27,7 +27,7 @@
          (d/create-database cfg)
          (log/infof "Done"))
        (let [conn (d/connect cfg)]
-         (assoc acc (pr (store-identity (-> @conn :config :store))) conn)))
+         (assoc acc (pr (ds/store-identity (-> @conn :config :store))) conn)))
      {}
      databases)))
 
