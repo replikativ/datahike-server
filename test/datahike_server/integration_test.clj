@@ -13,7 +13,7 @@
                             :keep-history? true})
 
 (defn- rename-cfg [cfg new-name]
-  (assoc-in [:store :id] new-name))
+  (assoc-in cfg [:store :id] new-name))
 
 (def ^:private test-cfg
   {:databases [default-cfg
