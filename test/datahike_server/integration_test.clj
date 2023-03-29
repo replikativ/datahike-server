@@ -4,6 +4,7 @@
             [datahike.store :as ds]
             [datahike.db :as db]
             [datahike-server.config :as config]
+            [datahike-server.database :refer [cfg->store-identity]]
             [datahike-server.json-utils :as ju]
             [datahike-server.test-utils :refer [api-request] :as utils]))
 
@@ -31,13 +32,13 @@
 
 (def ^:private test-cfg-headers
   (map (fn [cfg] {:headers {:authorization "token neverusethisaspassword"
-                            :store-identity (pr (ds/store-identity (:store cfg)))}})
+                           :store-identity (cfg->store-identity cfg)}})
        (:databases test-cfg)))
 
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
 
 (defn- get-test-cfg [store-identity]
-  (reduce (fn [s cfg] (if (= s (pr (ds/store-identity (:store cfg)))) (reduced cfg) s))
+  (reduce (fn [s cfg] (if (= s (cfg->store-identity cfg)) (reduced cfg) s))
           store-identity
           (:databases test-cfg)))
 

@@ -1,10 +1,10 @@
 (ns ^:integration datahike-server.middleware-test
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [datahike.core :as dc]
-            [datahike.store :refer [store-identity]]
             [datahike.constants :as dconst]
             [datahike.db.interface :as dbi]
             [datahike-server.middleware :as sut]
+            [datahike-server.database :refer [cfg->store-identity]]
             [datahike-server.test-utils :as utils]))
 
 (use-fixtures :once utils/setup-db)
@@ -47,9 +47,7 @@
                           :conn
                           deref
                           :config
-                          :store
-                          store-identity
-                          pr))))
+                          cfg->store-identity))))
     (testing "non-existing database"
       (let [store-id "[:mem \"bakeries\"]"
             request (assoc-in request [:headers "store-identity"] store-id)]

@@ -6,6 +6,9 @@
             [datahike.store :as ds])
   (:import [java.util UUID]))
 
+(defn cfg->store-identity [cfg]
+  (pr-str (ds/store-identity (:store cfg))))
+
 (defn init-connections [{:keys [databases] :as config}]
   (log/debug "Connecting to databases with config: " (str config))
   (if (nil? databases)
@@ -14,10 +17,10 @@
               (d/create-database)
               (log/infof "Done"))
           conn (d/connect)]
-      {(pr (ds/store-identity (-> @conn :config :store))) conn})
+      {(cfg->store-identity (-> @conn :config))  conn})
     (reduce
      (fn [acc cfg]
-       (let [store-identity (pr (ds/store-identity (:store cfg)))]
+       (let [store-identity (cfg->store-identity cfg)]
          (when (contains? acc store-identity)
            (throw (ex-info
                    (str "A database with store-identity '" store-identity "' already exists. Store identities on the server must be unique.")
