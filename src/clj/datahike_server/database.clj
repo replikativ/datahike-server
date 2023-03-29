@@ -16,18 +16,19 @@
           conn (d/connect)]
       {(pr (ds/store-identity (-> @conn :config :store))) conn})
     (reduce
-     (fn [acc {:keys [store-identity] :as cfg}]
-       (when (contains? acc store-identity)
-         (throw (ex-info
-                 (str "A database with store-identity'" store-identity "' already exists. Store identities on the server must be unique.")
-                 {:event :connection/initialization
-                  :error :database.store-identity/duplicate})))
-       (when-not (d/database-exists? cfg)
-         (log/infof "Creating database...")
-         (d/create-database cfg)
-         (log/infof "Done"))
-       (let [conn (d/connect cfg)]
-         (assoc acc (pr (ds/store-identity (-> @conn :config :store))) conn)))
+     (fn [acc cfg]
+       (let [store-identity (pr (ds/store-identity (:store cfg)))]
+         (when (contains? acc store-identity)
+           (throw (ex-info
+                   (str "A database with store-identity '" store-identity "' already exists. Store identities on the server must be unique.")
+                   {:event :connection/initialization
+                    :error :database.store-identity/duplicate})))
+         (when-not (d/database-exists? cfg)
+           (log/infof "Creating database...")
+           (d/create-database cfg)
+           (log/infof "Done"))
+         (let [conn (d/connect cfg)]
+           (assoc acc store-identity conn))))
      {}
      databases)))
 
