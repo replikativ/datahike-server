@@ -4,6 +4,7 @@
             [datahike.store :refer [store-identity]]
             [datahike.constants :as dconst]
             [datahike.db :as dd]
+            [datahike.db.interface :as dbi]
             [datahike-server.middleware :as sut]
             [datahike-server.test-utils :as utils]))
 
@@ -68,21 +69,21 @@
       (let [request (assoc-in request [:headers "db-history-type"] "history")]
         (is (-> (app request)
                 :db
-                dd/-temporal-index?))))
+                dbi/-temporal-index?))))
     (testing "as-of exists for the database"
       (let [request (-> request
                         (assoc-in [:headers "db-history-type"] "as-of")
                         (assoc-in [:headers "db-timepoint"] (str dconst/tx0)))]
         (is (-> (app request)
                 :db
-                dd/-temporal-index?))))
+                dbi/-temporal-index?))))
     (testing "since exists for the database"
       (let [request (-> request
                         (assoc-in [:headers "db-history-type"] "since")
                         (assoc-in [:headers "db-timepoint"] (str dconst/tx0)))]
         (is (-> (app request)
                 :db
-                dd/-temporal-index?))))
+                dbi/-temporal-index?))))
     (testing "history on database with no history enabled"
       (let [store-id "[[:mem \"sessions\"] :db]"
             request (-> request
