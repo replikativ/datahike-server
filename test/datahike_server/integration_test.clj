@@ -132,13 +132,14 @@
      (is (= {:databases (:databases test-cfg)}
             (let [ret (api-request :get "/databases" nil basic-header json? json?)
                   ret (if json?
-                        (update ret :databases (fn [db] (mapv #(-> (update-in % [:store :backend] keyword)
-                                                                   (update :schema-flexibility keyword)
-                                                                   (update :index keyword))
-                                                              db)))
+                        (update ret :databases (fn [dbs] (mapv #(-> (update-in % [:store :backend] keyword)
+                                                                    (update :schema-flexibility keyword)
+                                                                    (update :index keyword))
+                                                               dbs)))
                         ret)
-                  ret (update ret :database (map #(select-keys % [:attribute-refs? :index :keep-history?
-                                                                  :schema-flexibility :store])))]
+                  ret (update ret :databases (fn [dbs] (map #(select-keys % [:attribute-refs? :index :keep-history?
+                                                                             :schema-flexibility :store])
+                                                            dbs)))]
               ret))))))
 
 (deftest databases-test-edn
