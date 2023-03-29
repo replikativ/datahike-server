@@ -56,5 +56,4 @@
     conn
     (throw (ex-info (format "Database %s does not exist." store-identity)
                     {:cause :db-does-not-exist
-                     :conn conn
                      :store-identity store-identity}))))
