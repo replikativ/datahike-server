@@ -2,7 +2,8 @@
   (:require [mount.core :as mount :refer [defstate]]
             [taoensso.timbre :as log]
             [datahike-server.config :as config]
-            [datahike.api :as d])
+            [datahike.api :as d]
+            [datahike.store :refer [store-identity]])
   (:import [java.util UUID]))
 
 (defn init-connections [{:keys [databases] :as config}]
@@ -13,20 +14,20 @@
               (d/create-database)
               (log/infof "Done"))
           conn (d/connect)]
-      {(-> @conn :config :name) conn})
+      {(pr (store-identity (-> @conn :config :store))) conn})
     (reduce
-     (fn [acc {:keys [name] :as cfg}]
-       (when (contains? acc name)
+     (fn [acc {:keys [store-identity] :as cfg}]
+       (when (contains? acc store-identity)
          (throw (ex-info
-                 (str "A database with name '" name "' already exists. Database names on the transactor should be unique.")
+                 (str "A database with store-identity'" store-identity "' already exists. Store identities on the server must be unique.")
                  {:event :connection/initialization
-                  :error :database.name/duplicate})))
+                  :error :database.store-identity/duplicate})))
        (when-not (d/database-exists? cfg)
          (log/infof "Creating database...")
          (d/create-database cfg)
          (log/infof "Done"))
        (let [conn (d/connect cfg)]
-         (assoc acc (-> @conn :config :name) conn)))
+         (assoc acc (pr (store-identity (-> @conn :config :store))) conn)))
      {}
      databases)))
 
@@ -48,8 +49,8 @@
       (println "Done")))
   (mount/start #'datahike-server.database/conns))
 
-(defn get-db [db-name]
-  (if-let [conn (get conns db-name)]
+(defn get-db [store-identity]
+  (if-let [conn (get conns store-identity)]
     conn
-    (throw (ex-info (format "Database %s does not exist." db-name)
+    (throw (ex-info (format "Database %s does not exist." store-identity)
                     {:cause :db-does-not-exist}))))

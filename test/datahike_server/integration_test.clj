@@ -1,20 +1,20 @@
 (ns ^:integration datahike-server.integration-test
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [datahike.constants :as dc]
+            [datahike.store :refer [store-identity]]
             [datahike.db :as db]
             [datahike-server.config :as config]
             [datahike-server.json-utils :as ju]
             [datahike-server.test-utils :refer [api-request] :as utils]))
 
+
 (def ^:private default-cfg {:store {:backend :mem
                                     :id "default"}
                             :schema-flexibility :write
-                            :keep-history? true
-                            :name "default"})
+                            :keep-history? true})
 
 (defn- rename-cfg [cfg new-name]
-  (-> (assoc cfg :name new-name)
-      (assoc-in [:store :id] new-name)))
+  (assoc-in [:store :id] new-name))
 
 (def ^:private test-cfg
   {:databases [default-cfg
@@ -32,19 +32,19 @@
 
 (def ^:private test-cfg-headers
   (map (fn [cfg] {:headers {:authorization "token neverusethisaspassword"
-                            :db-name (:name cfg)}})
+                           :store-identity (pr (store-identity (:store cfg)))}})
        (:databases test-cfg)))
 
 (def ^:private basic-header {:headers {:authorization "token neverusethisaspassword"}})
 
-(defn- get-test-cfg [db-name]
-  (reduce (fn [s cfg] (if (= s (:name cfg)) (reduced cfg) s))
-          db-name
+(defn- get-test-cfg [store-identity]
+  (reduce (fn [s cfg] (if (= s (pr (store-identity (:store cfg)))) (reduced cfg) s))
+          store-identity
           (:databases test-cfg)))
 
-(defn- get-test-header [db-name]
-  (reduce (fn [s h] (if (= s (:db-name (:headers h))) (reduced h) s))
-          db-name
+(defn- get-test-header [store-identity]
+  (reduce (fn [s h] (if (= s (:store-identity (:headers h))) (reduced h) s))
+          store-identity
           test-cfg-headers))
 
 (defn- update-header [h cfg]

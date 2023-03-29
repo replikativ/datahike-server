@@ -49,15 +49,15 @@
 (s/def ::attr #(or (keyword? %) (string? %)))
 (s/def ::entity-request (s/keys :req-un [::eid] :opt-un [::attr]))
 
-(s/def ::db-name string?)
+(s/def ::store-identity string?)
 (s/def ::query-id number?)
 
 (s/def ::attrids [])
 
-(s/def ::conn-header (s/keys :req-un [::db-name]))
+(s/def ::conn-header (s/keys :req-un [::store-identity]))
 
 (s/def ::db-tx int?)
-(s/def ::db-header (s/keys :req-un [::db-name]
+(s/def ::db-header (s/keys :req-un [::store-identity]
                            :opt-un [::db-tx]))
 (s/def ::params map?)
 

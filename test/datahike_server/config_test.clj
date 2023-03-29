@@ -64,11 +64,9 @@
     (is (= {:databases [{:store {:backend :mem
                                  :id "sessions"}
                          :schema-flexibility :read
-                         :keep-history? false
-                         :name "sessions"}
+                         :keep-history? false}
                         {:store {:backend :file
-                                 :path "/tmp/dh-file"}
-                         :name "users"
+                                 :path "/tmp/dh-users"}
                          :keep-history? true
                          :schema-flexibility :write}]
             :server {:port  3333

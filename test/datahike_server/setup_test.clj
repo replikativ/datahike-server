@@ -14,7 +14,6 @@
           [{:store {:id "sessions", :backend :mem},
             :keep-history? false,
             :schema-flexibility :read,
-            :name "sessions",
             :index :datahike.index/hitchhiker-tree
             :attribute-refs? false,
             :cache-size 100000,
@@ -22,7 +21,6 @@
            {:store {:path "/tmp/dh-file", :backend :file},
             :keep-history? true,
             :schema-flexibility :write,
-            :name "users",
             :index :datahike.index/hitchhiker-tree
             :attribute-refs? false,
             :cache-size 100000,

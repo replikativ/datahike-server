@@ -42,11 +42,11 @@
   (buddy-auth-middleware/wrap-authentication handler token-backend))
 
 (defn wrap-db-connection
-  "Middleware that adds a database connection based on db-name in the header of a request."
+  "Middleware that adds a database connection based on store-identity in the header of a request."
   [handler]
   (fn [{:keys [headers] :as request}]
-    (if-let [db-name (get headers "db-name")]
-      (let [conn (dd/get-db db-name)]
+    (if-let [store-identity (get headers "store-identity")]
+      (let [conn (dd/get-db store-identity)]
         (handler (assoc request :conn conn)))
       (handler request))))
 
