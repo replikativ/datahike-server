@@ -129,7 +129,7 @@
   ([] (databases-test false))
   ([json?]
    (testing "Get databases"
-     (is (= {:databases (:databases test-cfg)}
+     (is (= {:databases (map (fn [cfg] (update cfg :attribute-refs? #(or % false))) (:databases test-cfg))}
             (let [ret (api-request :get "/databases" nil basic-header json? json?)
                   ret (if json?
                         (update ret :databases (fn [dbs] (mapv #(-> (update-in % [:store :backend] keyword)
@@ -137,7 +137,7 @@
                                                                     (update :index keyword))
                                                                dbs)))
                         ret)
-                  ret (update ret :databases (fn [dbs] (map #(select-keys % [:keep-history?
+                  ret (update ret :databases (fn [dbs] (map #(select-keys % [:keep-history? :attribute-refs?
                                                                              :schema-flexibility :store])
                                                             dbs)))]
               ret))))))
