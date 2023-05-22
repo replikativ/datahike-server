@@ -41,7 +41,7 @@
                                 borkdude/gh-release-artifact    {:git/url "https://github.com/borkdude/gh-release-artifact"
                                                                  :sha     "cf082df46a648178d1904e9cbcb787d8136a35c6"}
                                 babashka/babashka.curl          {:mvn/version "0.1.2"}
-                                babashka/fs                     {:mvn/version "0.1.6"}
+                                babashka/fs                     {:mvn/version "0.4.18"}
                                 cheshire/cheshire               {:mvn/version "5.11.0"}
                                 com.google.cloud.tools/jib-core {:mvn/version "0.21.0"}}
                    :ns-default build}}}
