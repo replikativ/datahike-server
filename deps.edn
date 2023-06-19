@@ -7,7 +7,7 @@
         ring-cors/ring-cors     {:mvn/version "0.1.13"}
         com.taoensso/timbre     {:mvn/version "6.1.0"}
         environ/environ         {:mvn/version "1.2.0"}
-        mount/mount             {:mvn/version "0.1.16"}
+        mount/mount             {:mvn/version "0.1.17"}
         metosin/spec-tools      {:mvn/version "0.10.5"}}
 
  :paths ["src/clj"]
