@@ -2,7 +2,7 @@
         io.replikativ/datahike  {:mvn/version "0.6.1542"}
         buddy/buddy-auth        {:mvn/version "3.0.323"}
         ring/ring-core          {:mvn/version "1.10.0"}
-        ring/ring-jetty-adapter {:mvn/version "1.9.5"}
+        ring/ring-jetty-adapter {:mvn/version "1.10.0"}
         metosin/reitit          {:mvn/version "0.6.0"}
         ring-cors/ring-cors     {:mvn/version "0.1.13"}
         com.taoensso/timbre     {:mvn/version "6.1.0"}
