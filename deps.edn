@@ -36,7 +36,7 @@
            :ffix {:extra-deps {cljfmt/cljfmt {:mvn/version "0.9.2"}}
                   :main-opts  ["-m" "cljfmt.main" "fix"]}
 
-           :build {:deps       {io.github.clojure/tools.build   {:git/tag "v0.8.2" :git/sha "ba1a2bf"}
+           :build {:deps       {io.github.clojure/tools.build   {:git/tag "v0.9.4" :git/sha "76b78fe"}
                                 slipset/deps-deploy             {:mvn/version "0.2.0"}
                                 borkdude/gh-release-artifact    {:git/url "https://github.com/borkdude/gh-release-artifact"
                                                                  :sha     "4a9a74f0e50e897c45df8cc70684360eb30fce80"}
