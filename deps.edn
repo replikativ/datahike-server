@@ -39,7 +39,7 @@
            :build {:deps       {io.github.clojure/tools.build   {:git/tag "v0.8.2" :git/sha "ba1a2bf"}
                                 slipset/deps-deploy             {:mvn/version "0.2.0"}
                                 borkdude/gh-release-artifact    {:git/url "https://github.com/borkdude/gh-release-artifact"
-                                                                 :sha     "cf082df46a648178d1904e9cbcb787d8136a35c6"}
+                                                                 :sha     "4a9a74f0e50e897c45df8cc70684360eb30fce80"}
                                 babashka/babashka.curl          {:mvn/version "0.1.2"}
                                 babashka/fs                     {:mvn/version "0.4.19"}
                                 cheshire/cheshire               {:mvn/version "5.11.0"}
