@@ -42,6 +42,6 @@
                                                                  :sha     "4a9a74f0e50e897c45df8cc70684360eb30fce80"}
                                 babashka/babashka.curl          {:mvn/version "0.1.2"}
                                 babashka/fs                     {:mvn/version "0.4.19"}
-                                cheshire/cheshire               {:mvn/version "5.11.0"}
+                                cheshire/cheshire               {:mvn/version "5.12.0"}
                                 com.google.cloud.tools/jib-core {:mvn/version "0.21.0"}}
                    :ns-default build}}}
