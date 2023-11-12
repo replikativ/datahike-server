@@ -1,5 +1,7 @@
 # Datahike Server
 
+**Datahike Server is now part of the [Datahike repository](https://github.com/replikativ/datahike/) and this repo is therefore archived.**
+
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Freplikativ%2Fdatahike-server%2Fmaster%2Fazuredeploy.json)
 
 With Datahike Server you can run your Datahike with a REST interface. Deploy
